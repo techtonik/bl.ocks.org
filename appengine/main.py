@@ -39,10 +39,10 @@ class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
     raw = fetch('http://gist.github.com/api/v1/yaml/%s' % id)
     meta = yaml.load(raw.content)['gists'][0]
-    owner = meta[':owner'] or ""
-    description = meta[':description'] or ""
-    files = meta[':files'] or []
-    time = meta[':created_at']
+    owner = ':owner' in meta and meta[':owner'] or "anonymous"
+    description = ':description' in meta and meta[':description'] or ""
+    files = ':files' in meta and meta[':files'] or []
+    time = ':created_at' in meta and meta[':created_at'] or "?"
     title = "%s - %s" % (id, escape(description)) if description else id
 
     self.response.out.write("""
