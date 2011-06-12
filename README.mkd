@@ -12,7 +12,7 @@ guide](http://developer.apple.com/library/safari/#documentation/Tools/Conceptual
 for an introduction on Safari extensions.
 
 To install the Chrome extension, see
-[bl.ocks.chrome-1.1.crx](/downloads/jasondavies/bl.ocks.chrome/bl.ocks.chrome-1.1.crx/qr_code).
+[bl.ocks.chrome-1.1.crx](/downloads/jasondavies/bl.ocks.chrome/bl.ocks.chrome-1.1.crx).
 For the source code, see the `chrome` directory. To package the Google Chrome
 extension, visit `chrome://extensions/` and click on "Developer mode". Then
 click "Pack extension..." and select the `chrome/bl.ocks.chrome` directory.
@@ -21,5 +21,5 @@ Google Chrome and install. Once installed, it will add the links automatically
 to any page you visit.
 
 To install the Firefox extension, see
-[bl.ocks.firefox.xpi](/downloads/jasondavies/bl.ocks.chrome/bl.ocks.firefox.xpi/qr_code).
+[bl.ocks.firefox.xpi](/downloads/jasondavies/bl.ocks.chrome/bl.ocks.firefox.xpi).
 For the source code, see the `firefox` directory.
