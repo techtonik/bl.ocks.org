@@ -62,7 +62,7 @@ class GistViewHandler(webapp.RequestHandler):
       <h1>block <a href="http://gist.github.com/%s">#%s</a></h1>
       <h2>
         <span class="description">%s</span>
-        by <a href="http://github.com/%s" class="owner">%s</a>
+        by <a href="/%s" class="owner">%s</a>
       </h2>
       <iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
       <div class="readme">
@@ -113,11 +113,50 @@ class GistDataHandler(webapp.RequestHandler):
       self.response.headers["Content-Type"] = "text/plain"
     self.response.out.write(raw.content)
 
+class GistUserHandler(webapp.RequestHandler):
+  def get(self, owner):
+    raw = fetch('http://gist.github.com/api/v1/yaml/gists/%s' % quote(owner))
+    gists = yaml.load(raw.content)['gists']
+
+    self.response.out.write("""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>bl.ocks.org - %s</title>
+    <style type="text/css">
+
+@import url("/style.css");
+
+    </style>
+  </head>
+  <body>
+    <div class="body">
+      <a href="/" class="about right">What&rsquo;s all this then?</a>
+      <h1>blocks by <a href="http://gist.github.com/%s">%s</a></h1>
+      <ul>
+""" % (escape(owner), quote(owner), escape(owner)))
+
+    for meta in gists:
+      id = meta[':repo']
+      description = ':description' in meta and meta[':description'] or id
+      time = ':created_at' in meta and meta[':created_at'] or "?"
+      self.response.out.write("""<li><a href="/%s">%s</a></li>""" % (
+          quote(id), escape(description)))
+
+    self.response.out.write("""
+      </ul>
+      <a href="/" class="about">about bl.ocks.org</a>
+    </div>
+  </body>
+</html>
+""")
+
 def main():
   application = webapp.WSGIApplication([
       ('/([0-9]+)', GistViewHandler),
       ('/([0-9]+)/', GistRedirectHandler),
-      ('/d/([0-9]+)/(.*)', GistDataHandler)
+      ('/d/([0-9]+)/(.*)', GistDataHandler),
+      (r'/(\w+)', GistUserHandler)
       ], debug=True)
   wsgiref.handlers.CGIHandler().run(application)
 
