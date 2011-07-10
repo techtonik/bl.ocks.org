@@ -38,7 +38,12 @@ class GistRedirectHandler(webapp.RequestHandler):
 class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
     raw = fetch('http://gist.github.com/api/v1/yaml/%s' % id)
-    meta = yaml.load(raw.content)['gists'][0]
+    parsed = yaml.load(raw.content)
+    if 'gists' not in parsed:
+      self.error(404)
+      return
+
+    meta = parsed['gists'][0]
     owner = ':owner' in meta and meta[':owner'] or "anonymous"
     description = ':description' in meta and meta[':description'] or ""
     files = ':files' in meta and meta[':files'] or []
@@ -116,8 +121,12 @@ class GistDataHandler(webapp.RequestHandler):
 class GistUserHandler(webapp.RequestHandler):
   def get(self, owner):
     raw = fetch('http://gist.github.com/api/v1/yaml/gists/%s' % quote(owner))
-    gists = yaml.load(raw.content)['gists']
+    parsed = yaml.load(raw.content)
+    if 'gists' not in parsed:
+      self.error(404)
+      return
 
+    gists = parsed['gists']
     self.response.out.write("""
 <!DOCTYPE html>
 <html>
@@ -137,10 +146,10 @@ class GistUserHandler(webapp.RequestHandler):
 """ % (escape(owner), quote(owner), escape(owner)))
 
     for meta in gists:
-      id = meta[':repo']
+      id = ':repo' in meta and meta[':repo'] or "?"
       description = ':description' in meta and meta[':description'] or id
-      time = ':created_at' in meta and meta[':created_at'] or "?"
-      if "index.html" in meta[':files']:
+      files = ':files' in meta and meta[':files'] or []
+      if "index.html" in files:
         self.response.out.write("""<li><a href="/%s">%s</a></li>""" % (
           quote(id), escape(description)))
 
