@@ -140,7 +140,8 @@ class GistUserHandler(webapp.RequestHandler):
       id = meta[':repo']
       description = ':description' in meta and meta[':description'] or id
       time = ':created_at' in meta and meta[':created_at'] or "?"
-      self.response.out.write("""<li><a href="/%s">%s</a></li>""" % (
+      if "index.html" in meta[':files']:
+        self.response.out.write("""<li><a href="/%s">%s</a></li>""" % (
           quote(id), escape(description)))
 
     self.response.out.write("""
