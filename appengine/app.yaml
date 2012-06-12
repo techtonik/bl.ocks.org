@@ -1,6 +1,7 @@
 application: bl-ocks-org
 version: 1
-runtime: python
+runtime: python27
+threadsafe: no
 api_version: 1
 
 handlers:
@@ -15,6 +16,10 @@ handlers:
 - url: /forkme.png
   static_files: static/forkme.png
   upload: static/forkme.png
+
+- url: /highlight.min.js
+  static_files: static/highlight.min.js
+  upload: static/highlight.min.js
 
 - url: .*
   script: main.py

@@ -16,20 +16,15 @@
 #
 
 import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
-
 import wsgiref.handlers
-import yaml
+import json
 import re
+from datetime import datetime
 from cgi import escape
 from urllib import quote
 from markdown import markdown
 from google.appengine.ext import webapp
 from google.appengine.api.urlfetch import fetch
-from google.appengine.dist import use_library
-
-use_library('django', '1.1')
-from django.utils.encoding import smart_unicode
 
 class GistRedirectHandler(webapp.RequestHandler):
   def get(self, id):
@@ -37,65 +32,53 @@ class GistRedirectHandler(webapp.RequestHandler):
 
 class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
-    raw = fetch('http://gist.github.com/api/v1/yaml/%s' % id)
-    meta = yaml.load(raw.content)['gists'][0]
-    owner = ':owner' in meta and meta[':owner'] or "anonymous"
-    description = ':description' in meta and meta[':description'] or ""
-    files = ':files' in meta and meta[':files'] or []
-    time = ':created_at' in meta and meta[':created_at'] or "?"
-    title = "%s - %s" % (id, escape(description)) if description else id
+    raw = fetch('https://api.github.com/gists/%s' % id)
+    meta = json.loads(raw.content)
+    owner = 'user' in meta and meta['user']['login'] or "anonymous"
+    description = 'description' in meta and meta['description'] or id
+    files = 'files' in meta and meta['files'] or []
+    time = 'created_at' in meta and datetime.strptime(meta['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
 
-    self.response.out.write("""
+    self.response.out.write(u"""
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>bl.ocks.org - %s</title>
-    <style type="text/css">
+<meta charset="utf-8">
+<title>%s</title>
+<style>
 
-@import url("/style.css");
+@import url("/style.css?20120613");
 
-    </style>
-  </head>
-  <body>
-    <div class="body">
-      <a href="/" class="about right">What&rsquo;s all this then?</a>
-      <h1>block <a href="http://gist.github.com/%s">#%s</a></h1>
-      <h2>
-        <span class="description">%s</span>
-        by <a href="http://github.com/%s" class="owner">%s</a>
-      </h2>
-      <iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
-      <div class="readme">
-""" % (title, id, id, escape(description), quote(owner), escape(owner), id))
+</style>
+<header>
+  <aside>%s</aside>
+  <a href="https://github.com/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
+</header>
+<h1>%s</h1>
+<iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
+""" % (escape(description), time.strftime("%B %d, %Y"), quote(owner), escape(owner), id, id, escape(description), id))
 
     # display the README
     for f in files:
       if re.match("^readme\.(md|mkd|markdown)$", f, re.I):
-        html = markdown(smart_unicode(fetch('http://gist.github.com/raw/%s/%s' % (id, quote(f))).content))
+        html = "<p>%s</p>" % markdown(files[f]['content'])
       elif re.match("^readme(\.txt)?$", f, re.I):
-        html = "<pre>%s</pre>" % escape(fetch('http://gist.github.com/raw/%s/%s' % (id, quote(f))).content)
+        html = "<pre>%s</pre>" % escape(files[f]['content'])
       else:
         html = None
       if html:
         self.response.out.write(html)
 
-    # display the creation time
-    if time:
-      self.response.out.write("<p class=\"time\">Created at %s.</p>" % time)
-
-    self.response.out.write("</div>")
-
-    # display the other files as source
+    # display other files as source
     for f in files:
       if not re.match("^readme(\.[a-z]+)?$", f, re.I):
-        self.response.out.write('<script src="http://gist.github.com/%s.js?file=%s"></script>' % (id, f))
+        self.response.out.write("<pre><code class=\"%s\">%s</code></pre>" % (os.path.splitext(f)[1][1:], escape(files[f]['content'])))
 
-    self.response.out.write("""
-      <a href="/" class="about">about bl.ocks.org</a>
-    </div>
-  </body>
-</html>
-""")
+    self.response.out.write(u"""
+<footer>
+  <aside>%s</aside>
+  <a href="https://github.com/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
+</footer>
+<script src="/highlight.min.js"></script>
+""" % (time.strftime("%B %d, %Y"), quote(owner), escape(owner), id, id))
 
 class GistDataHandler(webapp.RequestHandler):
   def get(self, id, file):
