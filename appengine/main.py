@@ -54,7 +54,8 @@ class GistViewHandler(webapp.RequestHandler):
 </header>
 <h1>%s</h1>
 <iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
-""" % (escape(description), time.strftime("%B %d, %Y"), quote(owner), escape(owner), id, id, escape(description), id))
+<p><aside style="text-align:right;"><a href="/d/%s/" target="_blank">Open in a new window.</a></aside>
+""" % (escape(description), time.strftime("%B %d, %Y"), quote(owner), escape(owner), id, id, escape(description), id, id))
 
     # display the README
     for f in files:
@@ -70,7 +71,10 @@ class GistViewHandler(webapp.RequestHandler):
     # display other files as source
     for f in files:
       if not re.match("^readme(\.[a-z]+)?$", f, re.I):
-        self.response.out.write("<pre><code class=\"%s\">%s</code></pre>" % (os.path.splitext(f)[1][1:], escape(files[f]['content'])))
+        self.response.out.write("""
+<h2><a name="%s" href="#%s">#</a>%s</h2>
+<pre><code class="%s">%s</code></pre>
+""" % (quote(f), quote(f), f, os.path.splitext(f)[1][1:], escape(files[f]['content'])))
 
     self.response.out.write(u"""
 <footer>
