@@ -45,17 +45,16 @@ class GistViewHandler(webapp.RequestHandler):
 <title>%s</title>
 <style>
 
-@import url("/style.css?20120613");
+@import url("/style.css?20120614");
 
 </style>
 <header>
-  <aside>%s</aside>
   <a href="https://github.com/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
 </header>
 <h1>%s</h1>
-<iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
-<p><aside style="text-align:right;"><a href="/d/%s/" target="_blank">Open in a new window.</a></aside>
-""" % (escape(description), time.strftime("%B %d, %Y"), quote(owner), escape(owner), id, id, escape(description), id, id))
+<p><aside style="margin-top:-3.1em;">%s</aside><iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
+<p><aside><a href="/d/%s/" target="_blank">Open in a new window.</a></aside>
+""" % (escape(description), quote(owner), escape(owner), id, id, escape(description), time.strftime("%B %d, %Y"), id, id))
 
     # display the README
     for f in files:
