@@ -34,10 +34,10 @@ class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
     raw = fetch('https://api.github.com/gists/%s' % id, deadline=60)
     gist = json.loads(raw.content)
-    owner = 'user' in gist and gist['user']['login'] or "anonymous"
-    description = 'description' in gist and gist['description'] or id
-    files = 'files' in gist and gist['files'] or []
-    time = 'created_at' in gist and datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
+    owner = gist['user'] and gist['user']['login'] or "anonymous"
+    description = gist['description'] or id
+    files = gist['files']
+    time = 'created_at' in gist and datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ")
 
     self.response.out.write(u"""
 <!DOCTYPE html>
@@ -155,10 +155,10 @@ a.block:hover .description {
 """ % (escape(owner), escape(owner)))
 
     for gist in gists:
-      id = 'id' in gist and gist['id'] or "?"
-      description = 'description' in gist and gist['description'] or id
-      files = 'files' in gist and gist['files'] or []
-      time = 'created_at' in gist and datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
+      id = gist['id']
+      description = gist['description'] or id
+      files = gist['files']
+      time = datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ")
       if "index.html" in files:
         self.response.out.write("""
 <a class="block" href="/%s">
