@@ -103,7 +103,7 @@ class GistDataHandler(webapp.RequestHandler):
 
 class GistUserHandler(webapp.RequestHandler):
   def get(self, owner):
-    raw = fetch('https://api.github.com/users/%s/gists' % quote(owner))
+    raw = fetch('https://api.github.com/users/%s/gists?per_page=100' % quote(owner))
     gists = json.loads(raw.content)
     self.response.out.write(u"""
 <!DOCTYPE html>
