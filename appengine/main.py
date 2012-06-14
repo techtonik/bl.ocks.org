@@ -87,7 +87,7 @@ class GistDataHandler(webapp.RequestHandler):
   def get(self, id, file):
     if not file:
       file = 'index.html'
-    raw = fetch('http://gist.github.com/raw/%s/%s' % (id, quote(file)))
+    raw = fetch('https://raw.github.com/gist/%s/%s' % (id, quote(file)))
     if re.search("\.css$", file):
       self.response.headers["Content-Type"] = "text/css"
     elif re.search("\.js$", file):
