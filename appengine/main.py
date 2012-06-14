@@ -97,6 +97,8 @@ class GistDataHandler(webapp.RequestHandler):
       self.response.headers["Content-Type"] = "application/json"
     elif re.search("\.txt$", file):
       self.response.headers["Content-Type"] = "text/plain"
+    elif re.search("\.svg$", file):
+      self.response.headers["Content-Type"] = "image/svg+xml"
     self.response.out.write(raw.content)
 
 class GistUserHandler(webapp.RequestHandler):
