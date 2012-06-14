@@ -52,7 +52,7 @@ class GistViewHandler(webapp.RequestHandler):
   <a href="/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
 </header>
 <h1>%s</h1>
-<p><aside style="margin-top:-3.1em;">%s</aside><iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
+<p><aside style="margin-top:-43px;">%s</aside><iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
 <p><aside><a href="/d/%s/" target="_blank">Open in a new window.</a></aside>
 """ % (escape(description), quote(owner), escape(owner), id, id, escape(description), time.strftime("%B %d, %Y"), id, id))
 
