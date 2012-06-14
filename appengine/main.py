@@ -32,7 +32,7 @@ class GistRedirectHandler(webapp.RequestHandler):
 
 class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
-    raw = fetch('https://api.github.com/gists/%s' % id)
+    raw = fetch('https://api.github.com/gists/%s' % id, deadline=60)
     gist = json.loads(raw.content)
     owner = 'user' in gist and gist['user']['login'] or "anonymous"
     description = 'description' in gist and gist['description'] or id
@@ -87,7 +87,7 @@ class GistDataHandler(webapp.RequestHandler):
   def get(self, id, file):
     if not file:
       file = 'index.html'
-    raw = fetch('https://raw.github.com/gist/%s/%s' % (id, quote(file)))
+    raw = fetch('https://raw.github.com/gist/%s/%s' % (id, quote(file)), deadline=30)
     if re.search("\.css$", file):
       self.response.headers["Content-Type"] = "text/css"
     elif re.search("\.js$", file):
@@ -103,7 +103,7 @@ class GistDataHandler(webapp.RequestHandler):
 
 class GistUserHandler(webapp.RequestHandler):
   def get(self, owner):
-    raw = fetch('https://api.github.com/users/%s/gists?per_page=100' % quote(owner))
+    raw = fetch('https://api.github.com/users/%s/gists?per_page=100' % quote(owner), deadline=60)
     gists = json.loads(raw.content)
     self.response.out.write(u"""
 <!DOCTYPE html>
