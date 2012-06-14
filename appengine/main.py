@@ -33,11 +33,11 @@ class GistRedirectHandler(webapp.RequestHandler):
 class GistViewHandler(webapp.RequestHandler):
   def get(self, id):
     raw = fetch('https://api.github.com/gists/%s' % id)
-    meta = json.loads(raw.content)
-    owner = 'user' in meta and meta['user']['login'] or "anonymous"
-    description = 'description' in meta and meta['description'] or id
-    files = 'files' in meta and meta['files'] or []
-    time = 'created_at' in meta and datetime.strptime(meta['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
+    gist = json.loads(raw.content)
+    owner = 'user' in gist and gist['user']['login'] or "anonymous"
+    description = 'description' in gist and gist['description'] or id
+    files = 'files' in gist and gist['files'] or []
+    time = 'created_at' in gist and datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
 
     self.response.out.write(u"""
 <!DOCTYPE html>
@@ -49,7 +49,7 @@ class GistViewHandler(webapp.RequestHandler):
 
 </style>
 <header>
-  <a href="https://github.com/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
+  <a href="/%s">%s</a>\u2019s block <a href="https://gist.github.com/%s">#%s</a>
 </header>
 <h1>%s</h1>
 <p><aside style="margin-top:-3.1em;">%s</aside><iframe marginwidth="0" marginheight="0" scrolling="no" src=\"/d/%s/\"></iframe>
@@ -99,11 +99,85 @@ class GistDataHandler(webapp.RequestHandler):
       self.response.headers["Content-Type"] = "text/plain"
     self.response.out.write(raw.content)
 
+class GistUserHandler(webapp.RequestHandler):
+  def get(self, owner):
+    raw = fetch('https://api.github.com/users/%s/gists' % quote(owner))
+    gists = json.loads(raw.content)
+    self.response.out.write(u"""
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>bl.ocks.org - %s</title>
+<style>
+
+@import url("/style.css?20120613");
+
+h1 {
+}
+
+.block {
+  border: solid 1px #ccc;
+  box-sizing: border-box;
+  display: inline-block;
+  float: left;
+  width: 230px;
+  height: 80px;
+  padding: 10px;
+  margin: 0 10px 10px 0;
+  position: relative;
+}
+
+.block:nth-child(4n+1) {
+  margin-right: none;
+}
+
+.block:hover {
+  background: #eee;
+}
+
+.date {
+  color: #636363;
+  display: block;
+  font-size: smaller;
+}
+
+a.block:hover {
+  text-decoration: none;
+}
+
+a.block:hover .description {
+  text-decoration: underline;
+}
+
+</style>
+<h1 style="margin-top:.8em;">%s\u2019s blocks</h1>
+""" % (escape(owner), escape(owner)))
+
+    for gist in gists:
+      id = 'id' in gist and gist['id'] or "?"
+      description = 'description' in gist and gist['description'] or id
+      files = 'files' in gist and gist['files'] or []
+      time = 'created_at' in gist and datetime.strptime(gist['created_at'], "%Y-%m-%dT%H:%M:%SZ") or None
+      if "index.html" in files:
+        self.response.out.write("""
+<a class="block" href="/%s">
+  <span class="description">%s</span>
+  <span class="date">%s</span>
+</a>
+""" % (quote(id), escape(description), time.strftime("%B %d, %Y")))
+
+    self.response.out.write("""
+<br clear="both">
+<footer>
+  about <a href="/">bl.ocks.org</a>
+</footer>
+""")
+
 def main():
   application = webapp.WSGIApplication([
       ('/([0-9]+)', GistViewHandler),
       ('/([0-9]+)/', GistRedirectHandler),
-      ('/d/([0-9]+)/(.*)', GistDataHandler)
+      ('/d/([0-9]+)/(.*)', GistDataHandler),
+      (r'/(\w+)', GistUserHandler)
       ], debug=True)
   wsgiref.handlers.CGIHandler().run(application)
 
