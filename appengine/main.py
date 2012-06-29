@@ -45,7 +45,7 @@ class GistViewHandler(webapp.RequestHandler):
 <title>%s</title>
 <style>
 
-@import url("/style.css?20120614");
+@import url("/style.css?20120628");
 
 </style>
 <header>
@@ -111,10 +111,7 @@ class GistUserHandler(webapp.RequestHandler):
 <title>bl.ocks.org - %s</title>
 <style>
 
-@import url("/style.css?20120613");
-
-h1 {
-}
+@import url("/style.css?20120628");
 
 .block {
   border: solid 1px #ccc;

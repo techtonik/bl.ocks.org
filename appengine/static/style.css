@@ -84,8 +84,6 @@ body > pre {
   border-left: solid 2px #ccc;
   padding-left: 18px;
   margin: 2em 0 2em -20px;
-  width: 720px;
-  overflow-x: scroll;
 }
 
 .html .value,
