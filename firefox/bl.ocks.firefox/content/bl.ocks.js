@@ -1,7 +1,8 @@
-window.addEventListener("load", function(e) {
-  var run = function() {
-    var document = content.document;
-    var reGist = /^https?\:\/\/gist\.github\.com\/(\d*)/i,
+window.addEventListener("load", function load() {
+  window.removeEventListener("load", load, false);
+  gBrowser.addEventListener("DOMContentLoaded", function(e) {
+    var document = e.originalTarget,
+        reGist = /^https?\:\/\/gist\.github\.com\/(\d*)/i,
         reRel = /^\/?(\d+)$/,
         gist = reGist.test(document.location.href),
         anchors = document.querySelectorAll("a[href]"),
@@ -15,7 +16,8 @@ window.addEventListener("load", function(e) {
     while (++i < n) {
       match = (href = (anchor = anchors[i]).getAttribute("href")).match(reGist);
       if (gist && !(match && match[1])) match = href.match(reRel);
-      if (match && match[1]) {
+      if (match && match[1] && !anchor.matched) {
+        anchor.matched = true; // avoid duplicate linking on iframes
         anchor = anchor.parentNode.insertBefore(document.createElement("a"), anchor.nextSibling);
         anchor.setAttribute("href", "http://bl.ocks.org/" + match[1]);
         anchor.setAttribute("title", "View bl.ock #" + match[1] + ".");
@@ -25,9 +27,5 @@ window.addEventListener("load", function(e) {
         image.style.width = "16px";
       }
     }
-  };
-  var appcontent = document.getElementById("appcontent");
-  if (appcontent) {
-    appcontent.addEventListener("DOMContentLoaded", run, true);  
-  }
-}, false); 
+  }, false);
+}, false);
