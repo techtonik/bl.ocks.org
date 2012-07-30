@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+@import url("/style.css?20120730");
+
+</style>
+
+<header>
+  <a class="user-login user-href">anonymous</a>’s block <a class="gist-href">#<span class="gist-id"></span></a>
+</header>
+
+<h1 class="gist-title">Loading…</h1>
+<p><aside style="margin-top:-43px;" class="gist-date"></aside>
+
+<iframe class="gist-src" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+<p><aside><a class="gist-src-href" target="_blank">Open in a new window.</a></aside>
+
+<p class="gist-readme"></p>
+
+<p class="gist-sources"></p>
+
+<footer>
+  <aside class="gist-date"></aside>
+  <a class="user-login user-href">anonymous</a>’s block <a class="gist-href">#<span class="gist-id"></span></a>
+</footer>
+
+<script src="http://d3js.org/d3.v2.min.js?2.9.6"></script>
+<script src="/highlight.min.js?20120730"></script>
+<script>
+
+var gist = location.pathname.substring(1);
+
+d3.selectAll(".gist-id").text(gist);
+d3.selectAll(".gist-src").attr("src", "/d/" + gist);
+d3.selectAll(".gist-src-href").attr("href", "/d/" + gist);
+
+d3.json("https://api.github.com/gists/" + encodeURIComponent(gist), function(info) {
+  var formatDate = d3.time.format("%B %d, %Y"),
+      parseDate = d3.time.format.iso.parse;
+
+  document.title = info.description || gist;
+
+  d3.selectAll(".user-login").text(info.user.login);
+  d3.selectAll(".user-href").attr("href", "/" + info.user.login);
+  d3.selectAll(".gist-href").attr("href", info.html_url);
+  d3.selectAll(".gist-title").text(info.description);
+  d3.selectAll(".gist-date").text(formatDate(parseDate(info.updated_at)));
+
+  var readme = d3.selectAll(".gist-readme")
+      .data(d3.values(info.files).filter(function(d) { return /^readme\b/i.test(d.filename) && d.language === "Markdown"; }))
+      .html(function(d) { return new Showdown.converter().makeHtml(d.content); });
+
+  var source = d3.select(".gist-sources").selectAll(".gist-source")
+      .data(d3.values(info.files).filter(function(d) { return !/^readme\b/i.test(d.filename); }))
+    .enter().append("div")
+      .attr("class", "gist-source");
+
+  source.append("h2")
+      .text(function(d) { return d.filename; })
+    .append("a")
+      .attr("name", function(d) { return d.filename; })
+      .attr("href", function(d) { return "#" + d.filename; })
+      .text("#");
+
+  source.append("pre").append("code")
+      .attr("class", function(d) { return d.language && d.language.toLowerCase(); })
+      .text(function(d) { return d.content; })
+      .each(function() { hljs.highlightBlock(this); });
+});
+
+</script>

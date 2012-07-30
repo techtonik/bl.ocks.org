@@ -3,9 +3,9 @@ html {
 }
 
 body {
-  position: relative;
   font-family: "Helvetica Neue", Helvetica, sans-serif;
   margin: 1em auto 4em auto;
+  position: relative;
   width: 960px;
 }
 
@@ -44,15 +44,12 @@ aside {
   width: 180px;
 }
 
-body > p, li > p {
+p {
   line-height: 1.5em;
-}
-
-body > p {
   width: 720px;
 }
 
-body > blockquote {
+blockquote {
   width: 640px;
 }
 
@@ -70,17 +67,14 @@ a:not(:hover) {
 
 pre, code, textarea {
   font-family: "Menlo", monospace;
-}
-
-code {
-  line-height: 1em;
+  line-height: normal;
 }
 
 textarea {
   font-size: 100%;
 }
 
-body > pre {
+.gist-source pre {
   border-left: solid 2px #ccc;
   padding-left: 18px;
   margin: 2em 0 2em -20px;

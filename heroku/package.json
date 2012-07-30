@@ -1,0 +1,13 @@
+{
+  "name": "blocks-api",
+  "version": "0.0.1",
+  "dependencies": {
+    "connect": "2.4.x",
+    "send": "0.0.x",
+    "mime": "1.2.x"
+  },
+  "engines": {
+    "node": "0.8.x",
+    "npm": "1.1.x"
+  }
+}
