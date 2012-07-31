@@ -64,7 +64,7 @@ d3.json("https://api.github.com/gists/" + encodeURIComponent(gist), function(inf
       .text("#");
 
   source.append("pre").append("code")
-      .attr("class", function(d) { return d.language && d.language.toLowerCase(); })
+      .attr("class", function(d) { return d.language && (d.language === "JSON" ? "javascript" : d.language.toLowerCase()); })
       .text(function(d) { return d.content; })
       .each(function() { hljs.highlightBlock(this); });
 });
