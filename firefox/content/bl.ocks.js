@@ -21,11 +21,10 @@ window.addEventListener("load", function load() {
         anchor = anchor.parentNode.insertBefore(document.createElement("a"), anchor.nextSibling);
         anchor.setAttribute("href", "http://bl.ocks.org/" + match[1]);
         anchor.setAttribute("title", "View bl.ock #" + match[1] + ".");
-        anchor.style.position = "relative";
         anchor.style.marginLeft = "2px";
-        anchor.style.marginRight = "18px";
         image = anchor.appendChild(document.createElement("img"));
         image.setAttribute("src", imageURL);
+        image.style.width = "16px";
       }
     }
 
