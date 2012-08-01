@@ -28,6 +28,6 @@ while (++i < n) {
 if (location.hostname === "gist.github.com") {
   var tr = document.createElement("tr"),
       id = location.pathname;
-  tr.innerHTML = "<td class=label>Blocks URL:</td><td><a class=git_url_facebox href='http://bl.ocks.org" + id + "'>http://bl.ocks.org" + id + "</a></td>";
+  tr.innerHTML = "<td class=label>Blocks URL:</td><td><a href='http://bl.ocks.org" + id + "'>http://bl.ocks.org" + id + "</a></td>";
   document.querySelector("#repos tbody").appendChild(tr);
 }
