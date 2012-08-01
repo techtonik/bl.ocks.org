@@ -4,6 +4,8 @@
 <dict>
 	<key>Author</key>
 	<string>Michael Bostock</string>
+	<key>Builder Version</key>
+	<string>7536.25</string>
 	<key>CFBundleDisplayName</key>
 	<string>bl.ocks</string>
 	<key>CFBundleIdentifier</key>

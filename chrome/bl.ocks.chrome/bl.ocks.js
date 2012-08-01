@@ -8,6 +8,7 @@ var reGist = /^https?\:\/\/gist\.github\.com\/([0-9]+(?:\/[0-9a-f]{40})?)$/,
     n = (location.hostname !== "bl.ocks.org") && anchors.length,
     href,
     match;
+
 while (++i < n) {
   match = (href = (anchor = anchors[i]).getAttribute("href")).match(reGist);
   if ((location.hostname === "gist.github.com") && !(match && match[1])) match = href.match(reRel);
@@ -22,4 +23,11 @@ while (++i < n) {
     image.setAttribute("src", imageURL);
     image.style.position = "absolute";
   }
+}
+
+if (location.hostname === "gist.github.com") {
+  var tr = document.createElement("tr"),
+      id = location.pathname;
+  tr.innerHTML = "<td class=label>Blocks URL:</td><td><a class=git_url_facebox href='http://bl.ocks.org" + id + "'>http://bl.ocks.org" + id + "</a></td>";
+  document.querySelector("#repos tbody").appendChild(tr);
 }
