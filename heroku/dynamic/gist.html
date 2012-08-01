@@ -34,8 +34,9 @@ var gist = location.pathname.substring(1);
 d3.selectAll(".gist-id").text(gist);
 d3.selectAll(".gist-src").attr("src", "/d/" + gist);
 d3.selectAll(".gist-src-href").attr("href", "/d/" + gist);
+d3.selectAll(".gist-href").attr("href", "https://gist.github.com/" + gist);
 
-d3.json("https://api.github.com/gists/" + encodeURIComponent(gist), function(info) {
+d3.json("https://api.github.com/gists/" + gist, function(info) {
   var formatDate = d3.time.format("%B %d, %Y"),
       parseDate = d3.time.format.iso.parse;
 
@@ -43,7 +44,6 @@ d3.json("https://api.github.com/gists/" + encodeURIComponent(gist), function(inf
 
   d3.selectAll(".user-login").text(info.user.login);
   d3.selectAll(".user-href").attr("href", "/" + info.user.login);
-  d3.selectAll(".gist-href").attr("href", info.html_url);
   d3.selectAll(".gist-title").text(info.description);
   d3.selectAll(".gist-date").text(formatDate(parseDate(info.updated_at)));
 
