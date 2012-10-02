@@ -112,7 +112,7 @@ server.use(function(request, response, next) {
 // e.g., /mbostock
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/(\w+)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/([-\w]+)$/.exec(u.pathname))) return next();
   send(request, "/user.html").root("dynamic").pipe(response);
 });
 
