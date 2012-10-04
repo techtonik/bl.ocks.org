@@ -13,7 +13,7 @@ var server = connect()
 // e.g., /0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf/
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/([0-9]+(?:\/[0-9a-f]{40})?)\/$/.exec(u.pathname))) return next();
+  if (!(r = /^\/([0-9]+|[0-9a-f]{20}(?:\/[0-9a-f]{40})?)\/$/.exec(u.pathname))) return next();
   response.writeHead(301, {"Location": "/" + r[1]});
   response.end();
 });
@@ -23,7 +23,7 @@ server.use(function(request, response, next) {
 // e.g., /0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/([0-9]+(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/([0-9]+|[0-9a-f]{20}(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
   send(request, "/gist.html").root("dynamic").pipe(response);
 });
 
@@ -32,7 +32,7 @@ server.use(function(request, response, next) {
 // e.g., /d/0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/d\/([0-9]+(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20}(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
   response.writeHead(301, {"Location": "/d/" + r[1] + "/"});
   response.end();
 });
@@ -44,7 +44,7 @@ server.use(function(request, response, next) {
 // e.g., /d/0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf/index.html
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/d\/([0-9]+(\/[0-9a-f]{40})?)\/(.*)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20}(\/[0-9a-f]{40})?)\/(.*)$/.exec(u.pathname))) return next();
   if (!r[3]) r[3] = "index.html";
 
   // Special-case for revision numbers. Since the revision number of the gist
