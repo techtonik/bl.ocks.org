@@ -51,7 +51,7 @@ server.use(function(request, response, next) {
   // does not match the revision number of the file, we have to fetch the
   // content via api.github.com rather than raw.github.com.
   if (r[2]) {
-    https.get({
+    var apiRequest = https.get({
       host: "api.github.com",
       path: "/gists/" + r[1],
       headers: merge({
@@ -82,10 +82,16 @@ server.use(function(request, response, next) {
           })
           .setEncoding("utf-8");
     });
+
+    apiRequest.on("error", function() {
+      response.writeHead(503, {"Content-Type": "text/plain"});
+      response.end("Service unavailable.")
+    });
+
     return;
   }
 
-  https.request({
+  var apiRequest = https.request({
     host: "raw.github.com",
     path: "/gist/" + r[1] + "/" + r[3],
     method: request.method,
@@ -105,7 +111,14 @@ server.use(function(request, response, next) {
       "Server"
     ));
     apiResponse.pipe(response);
-  }).end();
+  });
+
+  apiRequest.end();
+
+  apiRequest.on("error", function() {
+    response.writeHead(503, {"Content-Type": "text/plain"});
+    response.end("Service unavailable.")
+  });
 });
 
 // User Gists
