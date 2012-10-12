@@ -52,7 +52,7 @@ d3.json("https://api.github.com/gists/" + gist, function(info) {
       .html(function(d) { return new Showdown.converter().makeHtml(d.content); });
 
   var source = d3.select(".gist-sources").selectAll(".gist-source")
-      .data(d3.values(info.files).filter(function(d) { return !/^readme\b/i.test(d.filename); }))
+      .data(d3.values(info.files).filter(function(d) { return !/^readme\b/i.test(d.filename) && text(d.type); }))
     .enter().append("div")
       .attr("class", "gist-source");
 
@@ -70,5 +70,9 @@ d3.json("https://api.github.com/gists/" + gist, function(info) {
   d3.selectAll("code")
       .each(function() { hljs.highlightBlock(this); });
 });
+
+function text(type) {
+  return /^(text\/)|(application\/(javascript|json)|image\/svg$)/.test(type);
+}
 
 </script>
