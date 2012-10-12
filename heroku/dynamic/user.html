@@ -39,17 +39,17 @@ a.gist:hover {
 
 a.gist .description,
 a.gist .date {
-  left: 10px;
   position: absolute;
+  padding: 10px;
   z-index: 2;
 }
 
 a.gist .description {
-  top: 4px;
+  top: 0;
 }
 
 a.gist .date {
-  bottom: 4px;
+  bottom: 0;
 }
 
 a.gist:hover .description {
@@ -92,17 +92,18 @@ maybeFetch();
 
 function maybeFetch() {
   if (page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < innerHeight) {
-    fetch(++page);
+    ++page;
+    fetch();
   }
 }
 
-function fetch(page) {
+function fetch() {
   d3.json("https://api.github.com/users/" + encodeURIComponent(user) + "/gists?page=" + page, function(gists) {
     var formatDate = d3.time.format("%B %d, %Y"),
         parseDate = d3.time.format.iso.parse;
 
     if (!gists.length) {
-      page = -1;
+      page = NaN;
       d3.select(".loading").remove();
       return;
     }
