@@ -4,10 +4,11 @@
 
 @import url("/style.css?20120730");
 
-.gist {
-  background-position: 50% 50%;
+a.gist {
+  background-position: 50% 0%;
   border: solid 1px #ccc;
   box-sizing: border-box;
+  -o-box-sizing: border-box;
   -moz-box-sizing: border-box;
   -ms-box-sizing: border-box;
   -webkit-box-sizing: border-box;
@@ -16,17 +17,43 @@
   height: 80px;
   line-height: normal;
   margin: 0 10px 10px 0;
-  padding: 10px;
   position: relative;
+  text-shadow: 0 1px 0 #fff;
+  transition: ease 750ms background-position;
+  -webkit-transition: ease 750ms background-position;
+  -moz-transition: ease 750ms background-position;
+  -ms-transition: ease 750ms background-position;
+  -o-transition: ease 750ms background-position;
   width: 230px;
 }
 
-.gist:nth-child(4n) {
+a.gist:nth-child(4n) {
   margin-right: 0;
 }
 
-.gist:hover {
-  background: #eee;
+a.gist:hover {
+  background-color: #eee;
+  background-position: 50% 100%;
+  text-decoration: none;
+}
+
+a.gist .description,
+a.gist .date {
+  left: 10px;
+  position: absolute;
+  z-index: 2;
+}
+
+a.gist .description {
+  top: 4px;
+}
+
+a.gist .date {
+  bottom: 4px;
+}
+
+a.gist:hover .description {
+  text-decoration: underline;
 }
 
 .date {
@@ -35,20 +62,14 @@
   font-size: smaller;
 }
 
-a.gist:hover {
-  text-decoration: none;
-}
-
-a.gist:hover .description {
-  text-decoration: underline;
-}
-
 </style>
 
 <h1 style="margin-top:.8em;"><span class="user-login"></span>’s blocks</h1>
 
-<div class="gists">Loading; one moment please…</div>
-<br clear="both">
+<div class="gists">
+  <br clear="both">
+  <div class="loading">Loading; one moment please…</div>
+</div>
 
 <footer>
   about <a href="/">bl.ocks.org</a>
@@ -57,29 +78,54 @@ a.gist:hover .description {
 <script src="http://d3js.org/d3.v2.min.js?2.9.6"></script>
 <script>
 
-var user = location.pathname.substring(1);
+var user = location.pathname.substring(1),
+    page = 0;
+
 document.title = "bl.ocks.org - " + user;
 d3.selectAll(".user-login").text(user);
 
-d3.json("https://api.github.com/users/" + encodeURIComponent(user) + "/gists?per_page=100", function(gists) {
-  var formatDate = d3.time.format("%B %d, %Y"),
-      parseDate = d3.time.format.iso.parse;
+d3.select(window)
+    .on("scroll", maybeFetch)
+    .on("resize", maybeFetch);
 
-  var gist = d3.select(".gists").text(null).selectAll(".gist")
-      .data(gists.filter(function(d) { return "index.html" in d.files; }))
-    .enter().append("a")
-      .attr("class", "gist")
-      .attr("href", function(d) { return "/" + d.id; })
-    .filter(function(d) { return "thumbnail.png" in d.files; })
-      .style("background-image", function(d) { return "/" + d.id + "/thumbnail.png"; });
+maybeFetch();
 
-  gist.append("span")
-      .attr("class", "description")
-      .text(function(d) { return d.description || d.id; });
+function maybeFetch() {
+  if (page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < innerHeight) {
+    fetch(++page);
+  }
+}
 
-  gist.append("span")
-      .attr("class", "date")
-      .text(function(d) { return formatDate(parseDate(d.updated_at)); });
-});
+function fetch(page) {
+  d3.json("https://api.github.com/users/" + encodeURIComponent(user) + "/gists?page=" + page, function(gists) {
+    var formatDate = d3.time.format("%B %d, %Y"),
+        parseDate = d3.time.format.iso.parse;
+
+    if (!gists.length) {
+      page = -1;
+      d3.select(".loading").remove();
+      return;
+    }
+
+    var gist = d3.select(".gists").selectAll(".gist-enter")
+        .data(gists.filter(function(d) { return "index.html" in d.files; }))
+      .enter().insert("a", "br")
+        .attr("class", "gist")
+        .attr("href", function(d) { return "/" + d.id; });
+
+    gist.filter(function(d) { return "thumbnail.png" in d.files; })
+        .style("background-image", function(d) { return "url(https://raw.github.com/gist/" + d.id + "/thumbnail.png)"; });
+
+    gist.append("span")
+        .attr("class", "description")
+        .text(function(d) { return d.description || d.id; });
+
+    gist.append("span")
+        .attr("class", "date")
+        .text(function(d) { return formatDate(parseDate(d.updated_at)); });
+
+    maybeFetch();
+  });
+}
 
 </script>
