@@ -2,7 +2,8 @@ var connect = require("connect"),
     send = require("send"),
     mime = require("mime"),
     https = require("https"),
-    url = require("url");
+    url = require("url"),
+    secret = require("./secret");
 
 var server = connect()
     .use(connect.compress({filter: function(request, response) { return response.statusCode !== 304; }}))
@@ -53,7 +54,7 @@ server.use(function(request, response, next) {
   if (r[2]) {
     var apiRequest = https.get({
       host: "api.github.com",
-      path: "/gists/" + r[1],
+      path: "/gists/" + r[1] + "?client_id=" + secret.id + "&client_secret=" + secret.secret,
       headers: merge({
         "Accept-Charset": "utf-8"
       }, request.headers,
@@ -93,7 +94,7 @@ server.use(function(request, response, next) {
 
   var apiRequest = https.request({
     host: "raw.github.com",
-    path: "/gist/" + r[1] + "/" + r[3],
+    path: "/gist/" + r[1] + "/" + r[3] + "?client_id=" + secret.id + "&client_secret=" + secret.secret,
     method: request.method,
     headers: merge({
       "Accept-Charset": "utf-8"

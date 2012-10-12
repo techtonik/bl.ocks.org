@@ -1,1 +1,2 @@
 *.pyc
+heroku/secret.js
