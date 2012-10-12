@@ -5,6 +5,7 @@
 @import url("/style.css?20120730");
 
 .gist {
+  background-position: 50% 50%;
   border: solid 1px #ccc;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -68,7 +69,9 @@ d3.json("https://api.github.com/users/" + encodeURIComponent(user) + "/gists?per
       .data(gists.filter(function(d) { return "index.html" in d.files; }))
     .enter().append("a")
       .attr("class", "gist")
-      .attr("href", function(d) { return "/" + d.id; });
+      .attr("href", function(d) { return "/" + d.id; })
+    .filter(function(d) { return "thumbnail.png" in d.files; })
+      .style("background-image", function(d) { return "/" + d.id + "/thumbnail.png"; });
 
   gist.append("span")
       .attr("class", "description")
