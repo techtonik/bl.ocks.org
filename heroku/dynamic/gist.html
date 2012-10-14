@@ -47,12 +47,15 @@ d3.json("https://api.github.com/gists/" + gist, function(info) {
   d3.selectAll(".gist-title").text(info.description);
   d3.selectAll(".gist-date").text(formatDate(parseDate(info.updated_at)));
 
+  var files = d3.values(info.files)
+      .sort(function(a, b) { return (b.filename === "index.html") - (a.filename === "index.html") || a.filename.localeCompare(b.filename); });
+
   var readme = d3.selectAll(".gist-readme")
-      .data(d3.values(info.files).filter(function(d) { return /^readme\b/i.test(d.filename) && d.language === "Markdown"; }))
+      .data(files.filter(function(d) { return /^readme\b/i.test(d.filename) && d.language === "Markdown"; }))
       .html(function(d) { return new Showdown.converter().makeHtml(d.content); });
 
   var source = d3.select(".gist-sources").selectAll(".gist-source")
-      .data(d3.values(info.files).filter(function(d) { return !/^readme\b/i.test(d.filename) && text(d.type); }))
+      .data(files.filter(function(d) { return !/^readme\b/i.test(d.filename) && text(d.type); }))
     .enter().append("div")
       .attr("class", "gist-source");
 
