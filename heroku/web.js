@@ -3,6 +3,7 @@ var connect = require("connect"),
     mime = require("mime"),
     https = require("https"),
     url = require("url"),
+    util = require("util"),
     secret = require("./secret");
 
 var server = connect()
@@ -68,7 +69,7 @@ server.use(function(request, response, next) {
             try {
               var content = JSON.parse(body.join("")).files[r[3]].content;
               response.writeHead(200, merge({
-                "Cache-Control": "public",
+                "Cache-Control": "public, max-age=3600",
                 "Content-Type": mime.lookup(r[3], "text/plain") + "; charset=utf-8"
               }, apiResponse.headers,
                 "Date",
@@ -84,9 +85,10 @@ server.use(function(request, response, next) {
           .setEncoding("utf-8");
     });
 
-    apiRequest.on("error", function() {
+    apiRequest.on("error", function(error) {
       response.writeHead(503, {"Content-Type": "text/plain"});
-      response.end("Service unavailable.")
+      response.end("Service unavailable.");
+      util.log(error);
     });
 
     return;
@@ -104,7 +106,7 @@ server.use(function(request, response, next) {
     )
   }, function(apiResponse) {
     response.writeHead(response.statusCode = apiResponse.statusCode, merge({
-      "Cache-Control": "public",
+      "Cache-Control": "public, max-age=3600",
       "Content-Type": mime.lookup(r[3], "text/plain") + "; charset=utf-8"
     }, apiResponse.headers,
       "Date",
@@ -116,9 +118,10 @@ server.use(function(request, response, next) {
 
   apiRequest.end();
 
-  apiRequest.on("error", function() {
+  apiRequest.on("error", function(error) {
     response.writeHead(503, {"Content-Type": "text/plain"});
-    response.end("Service unavailable.")
+    response.end("Service unavailable.");
+    util.log(error);
   });
 });
 

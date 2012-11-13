@@ -120,7 +120,7 @@ function fetch() {
         .attr("href", function(d) { return "/" + d.id; });
 
     gist.filter(function(d) { return "thumbnail.png" in d.files; })
-        .style("background-image", function(d) { return "url(https://raw.github.com/gist/" + d.id + "/thumbnail.png)"; });
+        .style("background-image", function(d) { return "url(/d/" + d.id + "/thumbnail.png)"; });
 
     gist.append("span")
         .attr("class", "description")
