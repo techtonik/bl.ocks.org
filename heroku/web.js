@@ -46,7 +46,7 @@ server.use(function(request, response, next) {
 // e.g., /d/0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf/index.html
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20})(\/[0-9a-f]{40})?\/(.*)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/d\/((?:[0-9]+|[0-9a-f]{20})(\/[0-9a-f]{40})?)\/(.*)$/.exec(u.pathname))) return next();
   if (!r[3]) r[3] = "index.html";
 
   // Special-case for revision numbers. Since the revision number of the gist
