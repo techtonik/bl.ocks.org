@@ -113,22 +113,28 @@ function fetch() {
       return;
     }
 
-    var gist = d3.select(".gists").selectAll(".gist-enter")
-        .data(gists.filter(function(d) { return "index.html" in d.files; }))
+    gists = gists
+        .filter(function(d) { return "index.html" in d.files && (d.updated_at = parseDate(d.updated_at)); });
+
+    var gistEnter = d3.select(".gists").selectAll(".gist")
+        .data(gists, function(d) { return d.id; })
       .enter().insert("a", "br")
         .attr("class", "gist")
         .attr("href", function(d) { return "/" + d.id; });
 
-    gist.filter(function(d) { return "thumbnail.png" in d.files; })
+    gistEnter.filter(function(d) { return "thumbnail.png" in d.files; })
         .style("background-image", function(d) { return "url(/d/" + d.id + "/thumbnail.png)"; });
 
-    gist.append("span")
+    gistEnter.append("span")
         .attr("class", "description")
         .text(function(d) { return d.description || d.id; });
 
-    gist.append("span")
+    gistEnter.append("span")
         .attr("class", "date")
         .text(function(d) { return formatDate(parseDate(d.updated_at)); });
+
+    d3.select(".gists").selectAll(".gist")
+        .sort(function(a, b) { return b.id - a.id; });
 
     maybeFetch();
   });
