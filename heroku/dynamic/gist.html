@@ -25,7 +25,7 @@
   <a class="user-login user-href">anonymous</a>’s block <a class="gist-href">#<span class="gist-id"></span></a>
 </footer>
 
-<script src="http://d3js.org/d3.v2.min.js?2.9.6"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="/highlight.min.js?20120730"></script>
 <script>
 
@@ -36,7 +36,7 @@ d3.selectAll(".gist-src").attr("src", "/d/" + gist);
 d3.selectAll(".gist-src-href").attr("href", "/d/" + gist);
 d3.selectAll(".gist-href").attr("href", "https://gist.github.com/" + gist);
 
-d3.json("https://api.github.com/gists/" + gist, function(info) {
+d3.json("/" + gist + ".json", function(error, info) {
   var formatDate = d3.time.format("%B %d, %Y"),
       parseDate = d3.time.format.iso.parse;
 
@@ -52,7 +52,13 @@ d3.json("https://api.github.com/gists/" + gist, function(info) {
 
   var readme = d3.selectAll(".gist-readme")
       .data(files.filter(function(d) { return /^readme\b/i.test(d.filename) && d.language === "Markdown"; }))
-      .html(function(d) { return new Showdown.converter().makeHtml(d.content); });
+      .each(function(d) {
+        var readme = d3.select(this);
+        d3.text("/d/" + gist + "/" + d.filename, function(error, content) {
+          readme.html(new Showdown.converter().makeHtml(content));
+          readme.selectAll("code").each(function() { hljs.highlightBlock(this); });
+        });
+      });
 
   var source = d3.select(".gist-sources").selectAll(".gist-source")
       .data(files.filter(function(d) { return !/^readme\b/i.test(d.filename) && text(d.type); }))
@@ -68,14 +74,17 @@ d3.json("https://api.github.com/gists/" + gist, function(info) {
 
   source.append("pre").append("code")
       .attr("class", function(d) { return d.language && (d.language === "JSON" ? "javascript" : d.language.toLowerCase()); })
-      .text(function(d) { return d.content; });
-
-  d3.selectAll("code")
-      .each(function() { hljs.highlightBlock(this); });
+      .each(function(d) {
+        var code = d3.select(this);
+        d3.text("/d/" + gist + "/" + d.filename, function(error, content) {
+          code.text(content);
+          hljs.highlightBlock(code.node());
+        });
+      });
 });
 
 function text(type) {
-  return /^(text\/)|(application\/(javascript|json)|image\/svg$)/.test(type);
+  return /(^text\/)|(^application\/(javascript|json)$)|(^image\/svg$)|(\+xml$)/.test(type);
 }
 
 </script>

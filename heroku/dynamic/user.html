@@ -80,7 +80,7 @@ a.gist:hover .description {
   about <a href="/">bl.ocks.org</a>
 </footer>
 
-<script src="http://d3js.org/d3.v2.min.js?2.9.6"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
 var user = location.pathname.substring(1),
@@ -103,7 +103,7 @@ function maybeFetch() {
 }
 
 function fetch() {
-  d3.json("https://api.github.com/users/" + encodeURIComponent(user) + "/gists?page=" + page, function(gists) {
+  d3.json("/" + encodeURIComponent(user) + "/" + page + ".json", function(error, gists) {
     var formatDate = d3.time.format("%B %d, %Y"),
         parseDate = d3.time.format.iso.parse;
 
@@ -113,8 +113,9 @@ function fetch() {
       return;
     }
 
-    gists = gists
-        .filter(function(d) { return "index.html" in d.files && (d.updated_at = parseDate(d.updated_at)); });
+    gists.forEach(function(d) {
+      d.updated_at = parseDate(d.updated_at);
+    });
 
     var gistEnter = d3.select(".gists").selectAll(".gist")
         .data(gists, function(d) { return d.id; })
@@ -122,7 +123,7 @@ function fetch() {
         .attr("class", "gist")
         .attr("href", function(d) { return "/" + d.id; });
 
-    gistEnter.filter(function(d) { return "thumbnail.png" in d.files; })
+    gistEnter.filter(function(d) { return d.has_thumbnail; })
         .style("background-image", function(d) { return "url(/d/" + d.id + "/thumbnail.png)"; });
 
     gistEnter.append("span")

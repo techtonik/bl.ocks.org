@@ -1,10 +1,19 @@
-var connect = require("connect"),
+var fs = require("fs"),
+    connect = require("connect"),
     send = require("send"),
     mime = require("mime"),
-    https = require("https"),
     url = require("url"),
     util = require("util"),
-    secret = require("./secret");
+    formatDate = require("dateformat");
+
+var cache = require("./cache")({
+  "user-max-age": 1000 * 60 * 5, // five minutes
+  "user-cache-size": 1 << 8, // 256
+  "gist-max-age": 1000 * 60 * 5, // five minutes
+  "gist-cache-size": 1 << 12, // 4096
+  "file-max-size": 1 << 20, // 1M
+  "file-cache-size": 1 << 28 // 256M
+});
 
 var server = connect()
     .use(connect.compress({filter: function(request, response) { return response.statusCode !== 304; }}))
@@ -26,7 +35,39 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?$/.exec(u.pathname))) return next();
-  send(request, "/gist.html").root("dynamic").pipe(response);
+  send(request, "/gist.html").root("dynamic").pipe(response); // TODO embed gist into template response
+});
+
+// Gist API
+// e.g., /0123456789.json
+// e.g., /0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf.json
+server.use(function(request, response, next) {
+  var u = url.parse(request.url), r;
+  if (!(r = /^\/([0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?\.json$/.exec(u.pathname))) return next();
+  cache.gist(r[1], r[2], function(error, gist) {
+    if (error) {
+      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.end(error === 404 ? "File not found." : "Service unavailable.");
+      console.trace(error);
+      return;
+    }
+
+    var gistDate = new Date(gist.updated_at),
+        content = null;
+
+    // Return 304 not if-modified-since.
+    var status = request.headers["if-modified-since"] && gistDate <= new Date(request.headers["if-modified-since"])
+        ? 304
+        : (content = JSON.stringify(gist), 200);
+
+    response.writeHead(status, {
+      "Cache-Control": "max-age=86400",
+      "Content-Type": "application/json; charset=utf-8",
+      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
+      "Last-Modified": formatDate(gistDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
+    });
+    response.end(content);
+  });
 });
 
 // Gist File Redirect
@@ -46,82 +87,28 @@ server.use(function(request, response, next) {
 // e.g., /d/0123456789/d39b22ba1ca024287f98c221fd74f39a3f990cdf/index.html
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
-  if (!(r = /^\/d\/((?:[0-9]+|[0-9a-f]{20})(\/[0-9a-f]{40})?)\/(.*)$/.exec(u.pathname))) return next();
+  if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20})(?:\/([0-9a-f]{40}))?\/(.*)$/.exec(u.pathname))) return next();
   if (!r[3]) r[3] = "index.html";
+  cache.file(r[1], r[2], r[3], function(error, content, contentDate) {
+    if (error) {
+      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.end(error === 404 ? "File not found." : "Service unavailable.");
+      console.trace(error);
+      return;
+    }
 
-  // Special-case for revision numbers. Since the revision number of the gist
-  // does not match the revision number of the file, we have to fetch the
-  // content via api.github.com rather than raw.github.com.
-  if (r[2]) {
-    var apiRequest = https.get({
-      host: "api.github.com",
-      path: "/gists/" + r[1] + "?client_id=" + secret.id + "&client_secret=" + secret.secret,
-      headers: merge({
-        "Accept-Charset": "utf-8"
-      }, request.headers,
-        "User-Agent"
-      )
-    }, function(apiResponse) {
-      var body = [];
-      apiResponse
-          .on("data", function(chunk) { body.push(chunk); })
-          .on("end", function() {
-            try {
-              var content = JSON.parse(body.join("")).files[r[3]].content;
-              response.writeHead(200, merge({
-                "Cache-Control": "public, max-age=3600",
-                "Content-Type": mime.lookup(r[3], "text/plain") + "; charset=utf-8"
-              }, apiResponse.headers,
-                "Date",
-                "ETag",
-                "Server"
-              ));
-            } catch (e) {
-              response.writeHead(404, {"Content-Type": "text/plain"});
-              content = "File not found.";
-            }
-            response.end(content);
-          })
-          .setEncoding("utf-8");
+    // Return 304 not if-modified-since.
+    var status = request.headers["if-modified-since"] && contentDate <= new Date(request.headers["if-modified-since"])
+        ? (content = null, 304)
+        : 200;
+
+    response.writeHead(status, {
+      "Cache-Control": "max-age=86400",
+      "Content-Type": mime.lookup(r[3], "text/plain"), // TODO + "; charset=utf-8"
+      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
+      "Last-Modified": formatDate(contentDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
     });
-
-    apiRequest.on("error", function(error) {
-      response.writeHead(503, {"Content-Type": "text/plain"});
-      response.end("Service unavailable.");
-      util.log(error);
-    });
-
-    return;
-  }
-
-  var apiRequest = https.request({
-    host: "raw.github.com",
-    path: "/gist/" + r[1] + "/" + r[3] + "?client_id=" + secret.id + "&client_secret=" + secret.secret,
-    method: request.method,
-    headers: merge({
-      "Accept-Charset": "utf-8"
-    }, request.headers,
-      "If-None-Match",
-      "User-Agent"
-    )
-  }, function(apiResponse) {
-    response.writeHead(response.statusCode = apiResponse.statusCode, merge({
-      "Cache-Control": "public, max-age=3600",
-      "Content-Type": mime.lookup(r[3], "text/plain") + "; charset=utf-8"
-    }, apiResponse.headers,
-      "Date",
-      "ETag",
-      "Server"
-    ));
-    apiResponse.pipe(response);
-  });
-
-  apiRequest.end();
-
-  apiRequest.on("error", function(error) {
-    response.writeHead(503, {"Content-Type": "text/plain"});
-    response.end("Service unavailable.");
-    util.log(error);
+    response.end(content);
   });
 });
 
@@ -133,10 +120,34 @@ server.use(function(request, response, next) {
   send(request, "/user.html").root("dynamic").pipe(response);
 });
 
-server.listen(process.env.PORT || 5000);
+// User Gists API
+// e.g., /mbostock/1.json
+server.use(function(request, response, next) {
+  var u = url.parse(request.url), r;
+  if (!(r = /^\/([-\w]+)\/([0-9]+)\.json$/.exec(u.pathname))) return next();
+  cache.user(r[1], +r[2], function(error, user, userDate) {
+    if (error) {
+      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.end(error === 404 ? "File not found." : "Service unavailable.");
+      console.trace(error);
+      return;
+    }
 
-function merge(source, target) {
-  var i = 1, n = arguments.length, K, k;
-  while (++i < n) if ((k = (K = arguments[i]).toLowerCase()) in target) source[K] = target[k];
-  return source;
-}
+    var content = null;
+
+    // Return 304 not if-modified-since.
+    var status = request.headers["if-modified-since"] && userDate <= new Date(request.headers["if-modified-since"])
+        ? 304
+        : (content = JSON.stringify(user), 200);
+
+    response.writeHead(status, {
+      "Cache-Control": "max-age=86400",
+      "Content-Type": "application/json; charset=utf-8",
+      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
+      "Last-Modified": formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
+    });
+    response.end(content);
+  });
+});
+
+server.listen(process.env.PORT || 5000);
