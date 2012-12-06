@@ -90,10 +90,9 @@ document.title = "bl.ocks.org - " + user;
 d3.selectAll(".user-login").text(user);
 
 d3.select(window)
+    .on("load", maybeFetch)
     .on("scroll", maybeFetch)
     .on("resize", maybeFetch);
-
-maybeFetch();
 
 function maybeFetch() {
   if (page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < innerHeight) {
@@ -137,7 +136,7 @@ function fetch() {
     d3.select(".gists").selectAll(".gist")
         .sort(function(a, b) { return b.id - a.id; });
 
-    maybeFetch();
+    setTimeout(maybeFetch, 50);
   });
 }
 
