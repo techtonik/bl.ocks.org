@@ -82,7 +82,7 @@ d3.json("/" + gist + ".json", function(error, info) {
       .attr("class", function(d) { return d.language && (d.language === "JSON" ? "javascript" : d.language.toLowerCase()); })
       .each(function(d) {
         var code = d3.select(this);
-        d3.text("/d/" + gist + "/" + d.filename, function(error, content) {
+        d3.text("/d/" + gist + "/" + (d.filename === "index.html" ? "" : d.filename), function(error, content) {
           code.text(content);
           hljs.highlightBlock(code.node());
         });

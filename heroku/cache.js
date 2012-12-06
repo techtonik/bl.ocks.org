@@ -85,7 +85,7 @@ module.exports = function(options) {
               files: gist.files,
               updated_at: gist.updated_at,
               description: gist.description,
-              user: {login: gist.user.login},
+              user: gist.user ? {login: gist.user.login} : {login: "anonymous"},
               id: gist.id
             };
 
