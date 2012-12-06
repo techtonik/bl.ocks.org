@@ -40,6 +40,12 @@ d3.json("/" + gist + ".json", function(error, info) {
   var formatDate = d3.time.format("%B %d, %Y"),
       parseDate = d3.time.format.iso.parse;
 
+  if (error) info = {
+    description: "File Not Found",
+    user: {login: "anonymous"},
+    updated_at: new Date
+  };
+
   document.title = info.description || gist;
 
   d3.selectAll(".user-login").text(info.user.login);

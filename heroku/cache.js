@@ -54,13 +54,15 @@ module.exports = function(options) {
       response
           .on("data", function(chunk) { body.push(chunk); })
           .on("end", function() {
-            var gist;
+            var s = response.statusCode;
+            if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
 
             // Parse the gist response.
+            var gist;
             try {
               gist = JSON.parse(Buffer.concat(body).toString());
             } catch (e) {
-              callbackAll(e, null);
+              return callbackAll(e, null);
             }
 
             // Save the current master version.
@@ -104,7 +106,10 @@ module.exports = function(options) {
 
     // First fetch the gist.
     getGist(id, commit, function(error, gist) {
-      if (error) return void callbackAll(error, null);
+      if (error) return void callback(error, null);
+
+      // I don't recommend using names with slashes in them.
+      name = name.split("/").pop();
 
       // Check if the file exists before fetching its contents.
       if (!(name in gist.files)) return void callback(404, null);

@@ -48,7 +48,7 @@ server.use(function(request, response, next) {
     if (error) {
       response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
       response.end(error === 404 ? "File not found." : "Service unavailable.");
-      console.trace(error);
+      if (error !== 404) console.trace(error);
       return;
     }
 
@@ -93,7 +93,7 @@ server.use(function(request, response, next) {
     if (error) {
       response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
       response.end(error === 404 ? "File not found." : "Service unavailable.");
-      console.trace(error);
+      if (error !== 404) console.trace(error);
       return;
     }
 
@@ -129,7 +129,7 @@ server.use(function(request, response, next) {
     if (error) {
       response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
       response.end(error === 404 ? "File not found." : "Service unavailable.");
-      console.trace(error);
+      if (error !== 404) console.trace(error);
       return;
     }
 
