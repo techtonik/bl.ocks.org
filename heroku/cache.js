@@ -234,7 +234,7 @@ module.exports = function(options) {
     zlib.gzip(file, function(error, file) {
       if (!error && file.length < fileMaxSize) {
         var now = Date.now();
-        if (fileSize += file.length > fileCacheSize) fileByKey = {}, fileSize = 0; // TODO LRU
+        if ((fileSize += file.length) > fileCacheSize) fileByKey = {}, fileSize = 0; // TODO LRU
         fileByKey[key] = {value: file, created_at: now, updated_at: now};
       }
       callback(error);
