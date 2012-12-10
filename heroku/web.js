@@ -150,4 +150,12 @@ server.use(function(request, response, next) {
   });
 });
 
+// Status API
+server.use(function(request, response, next) {
+  var u = url.parse(request.url), r;
+  if (u.pathname !== "/!status.json") return next();
+  response.writeHead(200, {"Content-Type": "application/json; charset=utf-8"});
+  response.end(JSON.stringify(cache.status()));
+});
+
 server.listen(process.env.PORT || 5000);

@@ -73,10 +73,10 @@ module.exports = function(options) {
             var q = queue();
             for (var name in gist.files) {
               var file = gist.files[name];
-              if (text(file.type)) q.defer(saveFile, inferredKey + "/" + name, file.content);
               file.sha = file.raw_url.split("/").filter(function(s) { return /^[0-9a-f]{40}$/.test(s); })[0];
-              delete file.raw_url;
+              if (text(file.type)) q.defer(saveFile, id + "/" + file.sha + "/" + name, file.content);
               delete file.content;
+              delete file.raw_url;
             }
 
             // Strip the unneeded parts form the gist for memory efficiency;
@@ -96,8 +96,8 @@ module.exports = function(options) {
     }
 
     function callbackAll(error, gist) {
-      callbacks.forEach(function(callback) { try { callback(error, gist); } catch (ignore) {} });
       delete gistCallbacksByKey[key];
+      callbacks.forEach(function(callback) { try { callback(error, gist); } catch (ignore) {} });
     }
   }
 
@@ -147,8 +147,8 @@ module.exports = function(options) {
       }
 
       function callbackAll(error, file) {
-        callbacks.forEach(function(callback) { try { callback(error, file, date); } catch (ignore) {} });
         delete fileCallbacksByKey[key];
+        callbacks.forEach(function(callback) { try { callback(error, file, date); } catch (ignore) {} });
       }
     });
   }
@@ -205,8 +205,8 @@ module.exports = function(options) {
     }
 
     function callbackAll(error, gists) {
-      callbacks.forEach(function(callback) { try { callback(error, gists); } catch (ignore) {} });
       delete userCallbacksByKey[key];
+      callbacks.forEach(function(callback) { try { callback(error, gists); } catch (ignore) {} });
     }
   }
 
@@ -259,7 +259,14 @@ module.exports = function(options) {
   return {
     gist: getGist,
     file: getFile,
-    user: getUser
+    user: getUser,
+    status: function() {
+      return {
+        "user-size": userSize,
+        "gist-size": gistSize,
+        "file-size": fileSize
+      };
+    }
   };
 };
 
