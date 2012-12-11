@@ -129,8 +129,8 @@ module.exports = function(options) {
 
       // Otherwise, fetch the file.
       https.get({
-        host: "raw.github.com",
-        path: "/gist/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
+        host: "gist.github.com",
+        path: "/raw/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
       }, response).on("error", callbackAll);
 
       function response(response) {
