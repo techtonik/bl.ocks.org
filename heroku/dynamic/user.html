@@ -84,8 +84,11 @@ a.gist:hover .description {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 
-var user = location.pathname.substring(1),
-    page = 0;
+var formatDate = d3.time.format("%B %d, %Y"),
+    parseDate = d3.time.format.iso.parse,
+    user = location.pathname.substring(1),
+    page = 0,
+    fetching;
 
 document.title = "bl.ocks.org - " + user;
 d3.selectAll(".user-login").text(user);
@@ -96,16 +99,16 @@ d3.select(window)
     .on("resize", maybeFetch);
 
 function maybeFetch() {
-  if (page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < innerHeight) {
+  if (!fetching && page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < innerHeight) {
     ++page;
     fetch();
   }
 }
 
 function fetch() {
+  fetching = true;
   d3.json("/" + encodeURIComponent(user) + "/" + page + ".json", function(error, gists) {
-    var formatDate = d3.time.format("%B %d, %Y"),
-        parseDate = d3.time.format.iso.parse;
+    fetching = false;
 
     if (!gists.length) {
       page = NaN;
