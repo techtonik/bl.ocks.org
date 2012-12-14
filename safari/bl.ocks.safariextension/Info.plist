@@ -5,7 +5,7 @@
 	<key>Author</key>
 	<string>Michael Bostock</string>
 	<key>Builder Version</key>
-	<string>7536.25</string>
+	<string>8536.26.17</string>
 	<key>CFBundleDisplayName</key>
 	<string>bl.ocks</string>
 	<key>CFBundleIdentifier</key>
@@ -13,9 +13,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.2</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>Chrome</key>
 	<dict/>
 	<key>Content</key>
@@ -24,7 +24,7 @@
 		<dict>
 			<key>End</key>
 			<array>
-				<string>bl.ocks.js</string>
+				<string>blocks.js</string>
 			</array>
 		</dict>
 	</dict>
@@ -36,10 +36,14 @@
 	<dict>
 		<key>Website Access</key>
 		<dict>
+			<key>Allowed Domains</key>
+			<array>
+				<string>gist.github.com</string>
+			</array>
 			<key>Include Secure Pages</key>
 			<true/>
 			<key>Level</key>
-			<string>All</string>
+			<string>Some</string>
 		</dict>
 	</dict>
 	<key>Website</key>
