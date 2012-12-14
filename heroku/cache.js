@@ -191,13 +191,12 @@ module.exports = function(options) {
                 .filter(function(gist) { return "index.html" in gist.files; })
                 .map(function(gist) {
                   return {
-                    id: +gist.id,
+                    id: gist.id,
                     description: gist.description,
                     updated_at: gist.updated_at,
                     has_thumbnail: "thumbnail.png" in gist.files
                   };
-                })
-                .sort(function(a, b) { return b.id - a.id; });
+                });
 
             saveUser(key, gists, function(error) {
               callbackAll(error, gists);

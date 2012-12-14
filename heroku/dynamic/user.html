@@ -136,7 +136,7 @@ function fetch() {
 
     gistEnter.append("span")
         .attr("class", "date")
-        .text(function(d) { return formatDate(parseDate(d.updated_at)); });
+        .text(function(d) { return formatDate(d.updated_at); });
 
     d3.select(".gists").selectAll(".gist")
         .sort(function(a, b) { return b.id - a.id; });
