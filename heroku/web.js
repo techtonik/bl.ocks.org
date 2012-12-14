@@ -133,7 +133,8 @@ server.use(function(request, response, next) {
       return;
     }
 
-    var content = null;
+    var content = null,
+        maxSeconds = r[2] == 1 ? 60 * 5 : 60 * 60 * 24;
 
     // Return 304 not if-modified-since.
     var status = request.headers["if-modified-since"] && userDate <= new Date(request.headers["if-modified-since"])
@@ -141,9 +142,9 @@ server.use(function(request, response, next) {
         : (content = JSON.stringify(user), 200);
 
     response.writeHead(status, {
-      "Cache-Control": "max-age=86400",
+      "Cache-Control": "max-age=" + maxSeconds,
       "Content-Type": "application/json; charset=utf-8",
-      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
+      "Expires": formatDate(new Date(Date.now() + maxSeconds * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
       "Last-Modified": formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
     });
     response.end(content);

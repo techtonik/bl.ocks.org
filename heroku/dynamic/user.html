@@ -88,7 +88,8 @@ var formatDate = d3.time.format("%B %d, %Y"),
     parseDate = d3.time.format.iso.parse,
     user = location.pathname.substring(1),
     page = 0,
-    fetching;
+    fetching,
+    id;
 
 document.title = "bl.ocks.org - " + user;
 d3.selectAll(".user-login").text(user);
@@ -107,7 +108,7 @@ function maybeFetch() {
 
 function fetch() {
   fetching = true;
-  d3.json("/" + encodeURIComponent(user) + "/" + page + ".json", function(error, gists) {
+  d3.json("/" + encodeURIComponent(user) + "/" + page + ".json" + (id ? "?" + id : ""), function(error, gists) {
     fetching = false;
 
     if (!gists.length) {
@@ -140,6 +141,7 @@ function fetch() {
     d3.select(".gists").selectAll(".gist")
         .sort(function(a, b) { return b.id - a.id; });
 
+    id = gists[gists.length - 1].id;
     setTimeout(maybeFetch, 50);
   });
 }
