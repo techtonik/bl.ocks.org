@@ -38,7 +38,7 @@ d3.selectAll(".gist-src-href").attr("href", "/d/" + gist + "/");
 d3.selectAll(".gist-href").attr("href", "https://gist.github.com/" + gist);
 
 d3.json("/" + gist + ".json", function(error, info) {
-  var formatDate = d3.time.format("%B %d, %Y"),
+  var formatDate = d3.time.format("%B %-d, %Y"),
       parseDate = d3.time.format.iso.parse;
 
   if (error) info = {
