@@ -1,1 +1,1 @@
-web: node web.js --max-old-space-size=512
+web: node web.js --max_executable_size=128 --max-old-space-size=384
