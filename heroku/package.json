@@ -2,12 +2,12 @@
   "name": "blocks-api",
   "version": "0.0.1",
   "dependencies": {
-    "connect": "2.4.x",
+    "connect": "2.7.1",
     "lru-cache": "2.2.1",
-    "send": "0.0.x",
-    "mime": "1.2.x",
+    "send": "0.1.0",
+    "mime": "1.2.7",
     "queue-async": "1.0.0",
-    "dateformat": "1.0.3-1.2.3"
+    "dateformat": "1.0.4-1.2.3"
   },
   "engines": {
     "node": "0.8.x",
