@@ -2,28 +2,18 @@ var https = require("https"),
     url = require("url"),
     zlib = require("zlib"),
     queue = require("queue-async"),
+    lru = require("lru-cache"),
     secret = require("./secret");
-
-// TODO
-// - observe the cache size
 
 module.exports = function(options) {
   var commitById = {},
-      userMaxAge = options["user-max-age"] || Infinity,
-      userCacheSize = options["user-cache-size"] || Infinity,
-      gistMaxAge = options["gist-max-age"] || Infinity,
-      gistCacheSize = options["gist-cache-size"] || Infinity,
       fileMaxSize = options["file-max-size"] || Infinity,
-      fileCacheSize = options["file-cache-size"] || Infinity,
-      userByKey = {},
+      userCache = lru({max: options["user-cache-size"], maxAge: options["user-max-age"]}),
+      gistCache = lru({max: options["gist-cache-size"], maxAge: options["gist-max-age"]}),
+      fileCache = lru({max: options["file-cache-size"], maxAge: options["file-max-age"], length: function(d) { return d.length; }}),
       userCallbacksByKey = {},
-      userSize = 0,
-      gistByKey = {},
       gistCallbacksByKey = {},
-      gistSize = 0,
-      fileByKey = {},
-      fileCallbacksByKey = {},
-      fileSize = 0;
+      fileCallbacksByKey = {};
 
   function getGist(id, commit, callback) {
     if (arguments.length < 3) callback = commit, commit = null;
@@ -31,7 +21,7 @@ module.exports = function(options) {
     // If this gist is already known, it might be cached.
     var inferredCommit = commit || commitById[id];
     if (inferredCommit) {
-      var inferredKey = id + "/" + inferredCommit, gist = findGist(inferredKey, commit ? Infinity : gistMaxAge);
+      var inferredKey = id + "/" + inferredCommit, gist = findGist(inferredKey);
       if (gist) return void process.nextTick(function() { callback(null, gist); });
     }
 
@@ -156,7 +146,7 @@ module.exports = function(options) {
   function getUser(login, page, callback) {
 
     // If this user is already cached, return it.
-    var key = login + "/" + page, user = findUser(key, userMaxAge);
+    var key = login + "/" + page, user = findUser(key);
     if (user) return void process.nextTick(function() { callback(null, user); });
 
     // If this user is already being requested, add to the callback queue.
@@ -210,50 +200,33 @@ module.exports = function(options) {
     }
   }
 
-  function findGist(key, maxAge) {
-    var entry = gistByKey[key];
-    if (entry && Date.now() - entry.created_at > maxAge) delete gistByKey[key], entry = null;
-    return entry ? entry.value : null;
+  function findGist(key) {
+    return gistCache.get(key);
   }
 
   function saveGist(key, gist, callback) {
-    process.nextTick(function() {
-      var now = Date.now();
-      if (++gistSize > gistCacheSize) gistByKey = {}, gistSize = 0; // TODO LRU
-      gistByKey[key] = {value: gist, created_at: now, updated_at: now};
-      callback(null);
-    });
+    gistCache.set(key, gist);
+    process.nextTick(callback);
   }
 
   function findFile(key) {
-    var entry = fileByKey[key]
-    return entry && entry.value;
+    return fileCache.get(key);
   }
 
   function saveFile(key, file, callback) {
     zlib.gzip(file, function(error, file) {
-      if (!error && file.length < fileMaxSize) {
-        var now = Date.now();
-        if ((fileSize += file.length) > fileCacheSize) fileByKey = {}, fileSize = 0; // TODO LRU
-        fileByKey[key] = {value: file, created_at: now, updated_at: now};
-      }
+      if (!error) file.length < fileMaxSize ? fileCache.set(key, file) : fileCache.del(key);
       callback(error);
     });
   }
 
   function findUser(key, maxAge) {
-    var entry = userByKey[key];
-    if (entry && Date.now() - entry.created_at > maxAge) delete userByKey[key], entry = null;
-    return entry ? entry.value : null;
+    return userCache.get(key);
   }
 
   function saveUser(key, user, callback) {
-    process.nextTick(function() {
-      var now = Date.now();
-      if (++userSize > userCacheSize) userByKey = {}, userSize = 0; // TODO LRU
-      userByKey[key] = {value: user, created_at: now, updated_at: now};
-      callback(null);
-    });
+    userCache.set(key, user);
+    process.nextTick(callback);
   }
 
   return {
@@ -262,9 +235,9 @@ module.exports = function(options) {
     user: getUser,
     status: function() {
       return {
-        "user-size": userSize,
-        "gist-size": gistSize,
-        "file-size": fileSize
+        "user-size": userCache.length,
+        "gist-size": gistCache.length,
+        "file-size": fileCache.length
       };
     }
   };

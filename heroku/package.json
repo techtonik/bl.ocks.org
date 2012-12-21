@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "connect": "2.4.x",
+    "lru-cache": "2.2.1",
     "send": "0.0.x",
     "mime": "1.2.x",
     "queue-async": "1.0.0",
