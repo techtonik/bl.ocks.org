@@ -4,11 +4,11 @@ var connect = require("connect"),
     send = require("send"),
     formatDate = require("dateformat");
 
-var cache = require("./cache")({
+var api = require("./api-cache")({
   "user-max-age": 1000 * 60 * 5, // five minutes
-  "user-cache-size": 1 << 8, // 256
+  "user-cache-size": 1 << 23, // 8M
   "gist-max-age": 1000 * 60 * 5, // five minutes
-  "gist-cache-size": 1 << 11, // 2048
+  "gist-cache-size": 1 << 24, // 16M
   "file-max-size": 1 << 19, // 512K
   "file-cache-size": 1 << 27 // 128M
 });
@@ -46,7 +46,7 @@ server.use(function(request, response, next) {
   if (!(r = /^\/([0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?\.json$/.exec(u.pathname))) return next();
   var id = r[1],
       sha = r[2];
-  cache.gist(id, sha, function(error, gist) {
+  api.gist(id, sha, function(error, gist) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -95,7 +95,7 @@ server.use(function(request, response, next) {
   var id = r[1],
       sha = r[2],
       file = r[3] || "index.html";
-  cache.file(id, sha, file, function(error, content, contentType, contentDate) {
+  api.file(id, sha, file, function(error, content, contentType, contentDate) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -133,7 +133,7 @@ server.use(function(request, response, next) {
   if (!(r = /^\/([-\w]+)\/([0-9]+)\.json$/.exec(u.pathname))) return next();
   var id = r[1],
       page = +r[2];
-  cache.user(id, page, function(error, user, userDate) {
+  api.user(id, page, function(error, user, userDate) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -166,7 +166,7 @@ server.use(function(request, response, next) {
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.end(JSON.stringify({
-    cache: cache.status(),
+    cache: api.status(),
     memory: process.memoryUsage()
   }, null, 2));
 });

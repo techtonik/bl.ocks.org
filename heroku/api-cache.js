@@ -1,16 +1,14 @@
 var https = require("https"),
     url = require("url"),
-    zlib = require("zlib"),
     queue = require("queue-async"),
-    lru = require("lru-cache"),
+    cache = require("./zip-lru-cache"),
     secret = require("./secret");
 
 module.exports = function(options) {
   var commitById = {},
-      fileMaxSize = options["file-max-size"] || Infinity,
-      userCache = lru({max: options["user-cache-size"], maxAge: options["user-max-age"]}),
-      gistCache = lru({max: options["gist-cache-size"], maxAge: options["gist-max-age"]}),
-      fileCache = lru({max: options["file-cache-size"], maxAge: options["file-max-age"], length: function(d) { return d.length; }}),
+      userCache = cache({max: options["user-cache-size"], maxAge: options["user-max-age"]}),
+      gistCache = cache({max: options["gist-cache-size"], maxAge: options["gist-max-age"]}),
+      fileCache = cache({max: options["file-cache-size"], maxAge: options["file-max-age"], maxLength: options["file-max-size"]}),
       userCallbacksByKey = {},
       gistCallbacksByKey = {},
       fileCallbacksByKey = {};
@@ -18,17 +16,23 @@ module.exports = function(options) {
   function getGist(id, commit, callback) {
     if (arguments.length < 3) callback = commit, commit = null;
 
-    // If this gist is already known, it might be cached.
-    var inferredCommit = commit || commitById[id];
-    if (inferredCommit) {
-      var inferredKey = id + "/" + inferredCommit, gist = gistCache.get(inferredKey);
-      if (gist) return void process.nextTick(function() { callback(null, gist); });
-    }
+    // If this gist is already known (and a text file), it might be cached.
+    var inferredSha = commit || commitById[id];
+    if (inferredSha) return void gistCache.get(id + "/" + inferredSha, function(error, gist) {
+      if (gist) return void callback(null, gist);
+      fetchGist(id, commit, callback);
+    });
+
+    // Otherwise, this gist must require fetching.
+    fetchGist(id, commit, callback);
+  }
+
+  function fetchGist(id, commit, callback) {
 
     // If we haven't seen this gist before, we don't know the master SHA yet.
     var key = id + (commit ? "/" + commit : "");
 
-    // If this gist is already being requested, add to the callback queue.
+    // If this gist is already being fetched, add to the callback queue.
     var callbacks = gistCallbacksByKey[key];
     if (callbacks) return void callbacks.push(callback);
     callbacks = gistCallbacksByKey[key] = [callback];
@@ -37,9 +41,7 @@ module.exports = function(options) {
     https.get({
       host: "api.github.com",
       path: "/gists/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
-    }, respond).on("error", callbackAll);
-
-    function respond(response) {
+    }, function(response) {
       var gist = [];
       response.setEncoding("utf-8");
       response
@@ -52,7 +54,7 @@ module.exports = function(options) {
             try {
               gist = JSON.parse(gist.join(""));
             } catch (e) {
-              return callbackAll(e, null);
+              return void callbackAll(e, null);
             }
 
             // Save the current master version.
@@ -65,11 +67,11 @@ module.exports = function(options) {
               var file = gist.files[name],
                   sha = file.raw_url.split("/").filter(function(s) { return /^[0-9a-f]{40}$/.test(s); })[0];
               files[name] = {language: file.language, type: file.type, filename: file.filename, size: file.size, sha: sha};
-              if (text(file.type)) q.defer(saveFile, id + "/" + sha + "/" + name, file.content);
+              if (text(file.type)) q.defer(fileCache.set, id + "/" + sha + "/" + name, file.content);
             }
 
-            // Strip the unneeded parts form the gist for memory efficiency;
-            gistCache.set(inferredKey, gist = {
+            // Strip the unneeded parts form the gist for memory efficiency
+            q.defer(gistCache.set, inferredKey, gist = {
               history: [{version: commit}],
               files: files,
               updated_at: gist.updated_at,
@@ -78,13 +80,14 @@ module.exports = function(options) {
               id: gist.id
             });
 
-            q.await(function(error) { callbackAll(error, error == null ? gist : null); });
+            q.await(function(error) { callbackAll(null, gist); });
           });
-    }
+    }).on("error", callbackAll);
 
     function callbackAll(error, gist) {
+      var copy = callbacks.slice(); callbacks = null; // defensive copy
       delete gistCallbacksByKey[key];
-      callbacks.forEach(function(callback) { try { callback(error, gist); } catch (ignore) {} });
+      copy.forEach(function(callback) { try { callback(error, gist); } catch (ignore) {} });
     }
   }
 
@@ -104,48 +107,62 @@ module.exports = function(options) {
       // Determine the SHA of the requested file.
       var gistFile = gist.files[name],
           sha = gistFile.sha,
+          type = gistFile.type,
           date = new Date(gist.updated_at);
 
       // If this file is already cached, return it.
-      var key = id + "/" + sha + "/" + name, file = fileCache.get(key);
-      if (file) return void zlib.gunzip(file, function(error, file) { callback(error, file, gistFile.type, date); });
-
-      // If this file is already being requested, add to the callback queue.
-      var callbacks = fileCallbacksByKey[key];
-      if (callbacks) return void callbacks.push(callback);
-      callbacks = fileCallbacksByKey[key] = [callback];
-
-      // Otherwise, fetch the file.
-      https.get({
-        host: "gist.github.com",
-        path: "/raw/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
-      }, respond).on("error", callbackAll);
-
-      function respond(response) {
-        var file = [];
-        response
-            .on("data", function(chunk) { file.push(chunk); })
-            .on("end", function() {
-              var s = response.statusCode;
-              if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
-              saveFile(key, file = Buffer.concat(file), function(error) {
-                callbackAll(error, file);
-              });
-            });
-      }
-
-      function callbackAll(error, file) {
-        delete fileCallbacksByKey[key];
-        callbacks.forEach(function(callback) { try { callback(error, file, gistFile.type, date); } catch (ignore) {} });
-      }
+      fileCache.get(id + "/" + sha + "/" + name, function(error, file) {
+        if (file) return void callback(null, file, type, date);
+        fetchFile(id, sha, name, function(error, file) {
+          callback(error, file, type, date);
+        });
+      });
     });
+  }
+
+  function fetchFile(id, sha, name, callback) {
+    var key = id + "/" + sha + "/" + name;
+
+    // If this file is already being requested, add to the callback queue.
+    var callbacks = fileCallbacksByKey[key];
+    if (callbacks) return void callbacks.push(callback);
+    callbacks = fileCallbacksByKey[key] = [callback];
+
+    // Otherwise, fetch the file.
+    https.get({
+      host: "gist.github.com",
+      path: "/raw/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
+    }, function(response) {
+      var file = [];
+      response
+          .on("data", function(chunk) { file.push(chunk); })
+          .on("end", function() {
+            var s = response.statusCode;
+            if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
+            fileCache.set(key, file = Buffer.concat(file), function(error) {
+              callbackAll(null, file);
+            });
+          });
+    }).on("error", callbackAll);
+
+    function callbackAll(error, file) {
+      var copy = callbacks.slice(); callbacks = null; // defensive copy
+      delete fileCallbacksByKey[key];
+      copy.forEach(function(callback) { try { callback(error, file); } catch (ignore) {} });
+    }
   }
 
   function getUser(login, page, callback) {
 
     // If this user is already cached, return it.
-    var key = login + "/" + page, user = userCache.get(key);
-    if (user) return void process.nextTick(function() { callback(null, user); });
+    userCache.get(login + "/" + page, function(error, gists) {
+      if (gists) return void callback(null, gists);
+      fetchUser(login, page, callback);
+    });
+  }
+
+  function fetchUser(login, page, callback) {
+    var key = login + "/" + page;
 
     // If this user is already being requested, add to the callback queue.
     var callbacks = userCallbacksByKey[key];
@@ -156,9 +173,7 @@ module.exports = function(options) {
     https.get({
       host: "api.github.com",
       path: "/users/" + login + "/gists?page=" + page + "&client_id=" + secret.id + "&client_secret=" + secret.secret
-    }, respond).on("error", callbackAll);
-
-    function respond(response) {
+    }, function(response) {
       var gists = [];
       response.setEncoding("utf-8");
       response
@@ -171,7 +186,7 @@ module.exports = function(options) {
             try {
               gists = JSON.parse(gists.join(""));
             } catch (e) {
-              callbackAll(e, null);
+              return void callbackAll(e, null);
             }
 
             // Strip the unneeded parts form the gist for memory efficiency.
@@ -186,22 +201,17 @@ module.exports = function(options) {
                   };
                 });
 
-            userCache.set(key, gists);
-            callbackAll(null, gists);
+            userCache.set(key, gists, function(error) {
+              callbackAll(error, gists);
+            });
           });
-    }
+    }).on("error", callbackAll);
 
     function callbackAll(error, gists) {
+      var copy = callbacks.slice(); callbacks = null; // defensive copy
       delete userCallbacksByKey[key];
-      callbacks.forEach(function(callback) { try { callback(error, gists); } catch (ignore) {} });
+      copy.forEach(function(callback) { try { callback(error, gists); } catch (ignore) {} });
     }
-  }
-
-  function saveFile(key, buffer, callback) {
-    zlib.gzip(buffer, function(error, zbuffer) {
-      if (!error) zbuffer.length < fileMaxSize ? fileCache.set(key, zbuffer) : fileCache.del(key);
-      callback(error);
-    });
   }
 
   return {
@@ -210,9 +220,9 @@ module.exports = function(options) {
     user: getUser,
     status: function() {
       return {
-        "user-size": userCache.length,
-        "gist-size": gistCache.length,
-        "file-size": fileCache.length
+        "user-size": userCache.size(),
+        "gist-size": gistCache.size(),
+        "file-size": fileCache.size()
       };
     }
   };
