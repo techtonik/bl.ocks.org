@@ -58,7 +58,7 @@ module.exports = function(options) {
             }
 
             // Save the current master version.
-            if (!commit) commit = commitById[id] = gist.history[0].version, inferredKey = id + "/" + commit;
+            if (!commit) commit = commitById[id] = gist.history[0].version;
 
             // Promote text files to the file cache.
             // Binary files are not encoded correctly, and must be fetched separately.
@@ -71,7 +71,7 @@ module.exports = function(options) {
             }
 
             // Strip the unneeded parts form the gist for memory efficiency
-            q.defer(gistCache.set, inferredKey, gist = {
+            q.defer(gistCache.set, id + "/" + commit, gist = {
               history: [{version: commit}],
               files: files,
               updated_at: gist.updated_at,
