@@ -1,9 +1,8 @@
-var fs = require("fs"),
-    connect = require("connect"),
+var url = require("url");
+
+var connect = require("connect"),
     send = require("send"),
     mime = require("mime"),
-    url = require("url"),
-    util = require("util"),
     formatDate = require("dateformat");
 
 var cache = require("./cache")({
@@ -16,7 +15,7 @@ var cache = require("./cache")({
 });
 
 var server = connect()
-    .use(connect.compress({filter: function(request, response) { return response.statusCode !== 304; }}))
+    .use(connect.compress())
     .use(connect.static("static"));
 
 // Gist Redirect
@@ -25,7 +24,9 @@ var server = connect()
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/((?:[0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?)\/$/.exec(u.pathname))) return next();
-  response.writeHead(301, {"Location": "/" + r[1]});
+  var id = r[1];
+  response.statusCode = 301;
+  response.setHeader("Location", "/" + id);
   response.end();
 });
 
@@ -44,9 +45,12 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?\.json$/.exec(u.pathname))) return next();
-  cache.gist(r[1], r[2], function(error, gist) {
+  var id = r[1],
+      sha = r[2];
+  cache.gist(id, sha, function(error, gist) {
     if (error) {
-      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.statusCode = error === 404 ? 404 : 503;
+      response.setHeader("Content-Type", "text/plain");
       response.end(error === 404 ? "File not found." : "Service unavailable.");
       if (error !== 404) console.trace(error);
       return;
@@ -56,16 +60,15 @@ server.use(function(request, response, next) {
         content = null;
 
     // Return 304 not if-modified-since.
-    var status = request.headers["if-modified-since"] && gistDate <= new Date(request.headers["if-modified-since"])
+    response.statusCode = request.headers["if-modified-since"]
+        && gistDate <= new Date(request.headers["if-modified-since"])
         ? 304
         : (content = JSON.stringify(gist), 200);
 
-    response.writeHead(status, {
-      "Cache-Control": "max-age=86400",
-      "Content-Type": "application/json; charset=utf-8",
-      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
-      "Last-Modified": formatDate(gistDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
-    });
+    response.setHeader("Cache-Control", "max-age=86400");
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.setHeader("Expires", formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
+    response.setHeader("Last-Modified", formatDate(gistDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.end(content);
   });
 });
@@ -76,7 +79,9 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/d\/((?:[0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
-  response.writeHead(301, {"Location": "/d/" + r[1] + "/"});
+  var id = r[1];
+  response.statusCode = 301;
+  response.setHeader("Location", "/d/" + id + "/'");
   response.end();
 });
 
@@ -88,26 +93,28 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20})(?:\/([0-9a-f]{40}))?\/(.*)$/.exec(u.pathname))) return next();
-  if (!r[3]) r[3] = "index.html";
-  cache.file(r[1], r[2], r[3], function(error, content, contentDate) {
+  var id = r[1],
+      sha = r[2],
+      file = r[3] || "index.html";
+  cache.file(id, sha, file, function(error, content, contentDate) {
     if (error) {
-      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.statusCode = error === 404 ? 404 : 503;
+      response.setHeader("Content-Type", "text/plain");
       response.end(error === 404 ? "File not found." : "Service unavailable.");
       if (error !== 404) console.trace(error);
       return;
     }
 
     // Return 304 not if-modified-since.
-    var status = request.headers["if-modified-since"] && contentDate <= new Date(request.headers["if-modified-since"])
+    response.statusCode = request.headers["if-modified-since"]
+        && contentDate <= new Date(request.headers["if-modified-since"])
         ? (content = null, 304)
         : 200;
 
-    response.writeHead(status, {
-      "Cache-Control": "max-age=86400",
-      "Content-Type": mime.lookup(r[3], "text/plain"), // TODO + "; charset=utf-8"
-      "Expires": formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
-      "Last-Modified": formatDate(contentDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
-    });
+    response.setHeader("Cache-Control", "max-age=86400");
+    response.setHeader("Content-Type", mime.lookup(file, "text/plain")); // TODO + "; charset=utf-8"
+    response.setHeader("Expires", formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
+    response.setHeader("Last-Modified", formatDate(contentDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.end(content);
   });
 });
@@ -125,28 +132,30 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([-\w]+)\/([0-9]+)\.json$/.exec(u.pathname))) return next();
-  cache.user(r[1], +r[2], function(error, user, userDate) {
+  var id = r[1],
+      page = +r[2];
+  cache.user(id, page, function(error, user, userDate) {
     if (error) {
-      response.writeHead(error === 404 ? 404 : 503, {"Content-Type": "text/plain"});
+      response.statusCode = error === 404 ? 404 : 503;
+      response.setHeader("Content-Type", "text/plain");
       response.end(error === 404 ? "File not found." : "Service unavailable.");
       if (error !== 404) console.trace(error);
       return;
     }
 
     var content = null,
-        maxSeconds = r[2] == 1 ? 60 * 5 : 60 * 60 * 24;
+        maxSeconds = page === 1 ? 60 * 5 : 60 * 60 * 24;
 
     // Return 304 not if-modified-since.
-    var status = request.headers["if-modified-since"] && userDate <= new Date(request.headers["if-modified-since"])
+    response.statusCode = request.headers["if-modified-since"]
+        && userDate <= new Date(request.headers["if-modified-since"])
         ? 304
         : (content = JSON.stringify(user), 200);
 
-    response.writeHead(status, {
-      "Cache-Control": "max-age=" + maxSeconds,
-      "Content-Type": "application/json; charset=utf-8",
-      "Expires": formatDate(new Date(Date.now() + maxSeconds * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
-      "Last-Modified": formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
-    });
+    response.setHeader("Cache-Control", "max-age=" + maxSeconds);
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.setHeader("Expires", formatDate(new Date(Date.now() + maxSeconds * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
+    response.setHeader("Last-Modified", formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.end(content);
   });
 });
@@ -155,8 +164,12 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (u.pathname !== "/!status.json") return next();
-  response.writeHead(200, {"Content-Type": "application/json; charset=utf-8"});
-  response.end(JSON.stringify(cache.status(), null, 2));
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.end(JSON.stringify({
+    cache: cache.status(),
+    memory: process.memoryUsage()
+  }, null, 2));
 });
 
 server.listen(process.env.PORT || 5000);
