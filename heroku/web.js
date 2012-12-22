@@ -2,16 +2,15 @@ var url = require("url");
 
 var connect = require("connect"),
     send = require("send"),
-    mime = require("mime"),
     formatDate = require("dateformat");
 
 var cache = require("./cache")({
   "user-max-age": 1000 * 60 * 5, // five minutes
   "user-cache-size": 1 << 8, // 256
   "gist-max-age": 1000 * 60 * 5, // five minutes
-  "gist-cache-size": 1 << 12, // 4096
-  "file-max-size": 1 << 20, // 1M
-  "file-cache-size": 1 << 28 // 256M
+  "gist-cache-size": 1 << 11, // 2048
+  "file-max-size": 1 << 19, // 512K
+  "file-cache-size": 1 << 27 // 128M
 });
 
 var server = connect()
@@ -96,7 +95,7 @@ server.use(function(request, response, next) {
   var id = r[1],
       sha = r[2],
       file = r[3] || "index.html";
-  cache.file(id, sha, file, function(error, content, contentDate) {
+  cache.file(id, sha, file, function(error, content, contentType, contentDate) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -112,7 +111,7 @@ server.use(function(request, response, next) {
         : 200;
 
     response.setHeader("Cache-Control", "max-age=86400");
-    response.setHeader("Content-Type", mime.lookup(file, "text/plain")); // TODO + "; charset=utf-8"
+    response.setHeader("Content-Type", contentType); // TODO + "; charset=utf-8"
     response.setHeader("Expires", formatDate(new Date(Date.now() + 86400 * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.setHeader("Last-Modified", formatDate(contentDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.end(content);

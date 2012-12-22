@@ -60,19 +60,18 @@ module.exports = function(options) {
 
             // Promote text files to the file cache.
             // Binary files are not encoded correctly, and must be fetched separately.
-            var q = queue();
+            var q = queue(), files = {};
             for (var name in gist.files) {
-              var file = gist.files[name];
-              file.sha = file.raw_url.split("/").filter(function(s) { return /^[0-9a-f]{40}$/.test(s); })[0];
-              if (text(file.type)) q.defer(saveFile, id + "/" + file.sha + "/" + name, file.content);
-              delete file.content;
-              delete file.raw_url;
+              var file = gist.files[name],
+                  sha = file.raw_url.split("/").filter(function(s) { return /^[0-9a-f]{40}$/.test(s); })[0];
+              files[name] = { language: file.language, type: file.type, filename: file.filename, size: file.size, sha: sha};
+              if (text(file.type)) q.defer(saveFile, id + "/" + sha + "/" + name, file.content);
             }
 
             // Strip the unneeded parts form the gist for memory efficiency;
             gist = {
               history: [{version: commit}],
-              files: gist.files,
+              files: files,
               updated_at: gist.updated_at,
               description: gist.description,
               user: gist.user ? {login: gist.user.login} : {login: "anonymous"},
@@ -105,12 +104,13 @@ module.exports = function(options) {
       if (!(name in gist.files)) return void callback(404, null);
 
       // Determine the SHA of the requested file.
-      var sha = gist.files[name].sha,
+      var gistFile = gist.files[name],
+          sha = gistFile.sha,
           date = new Date(gist.updated_at);
 
       // If this file is already cached, return it.
       var key = id + "/" + sha + "/" + name, file = findFile(key);
-      if (file) return void zlib.gunzip(file, function(error, file) { callback(error, file, date); });
+      if (file) return void zlib.gunzip(file, function(error, file) { callback(error, file, gistFile.type, date); });
 
       // If this file is already being requested, add to the callback queue.
       var callbacks = fileCallbacksByKey[key];
@@ -138,7 +138,7 @@ module.exports = function(options) {
 
       function callbackAll(error, file) {
         delete fileCallbacksByKey[key];
-        callbacks.forEach(function(callback) { try { callback(error, file, date); } catch (ignore) {} });
+        callbacks.forEach(function(callback) { try { callback(error, file, gistFile.type, date); } catch (ignore) {} });
       }
     });
   }
