@@ -21,7 +21,7 @@ module.exports = function(options) {
     // If this gist is already known, it might be cached.
     var inferredCommit = commit || commitById[id];
     if (inferredCommit) {
-      var inferredKey = id + "/" + inferredCommit, gist = findGist(inferredKey);
+      var inferredKey = id + "/" + inferredCommit, gist = gistCache.get(inferredKey);
       if (gist) return void process.nextTick(function() { callback(null, gist); });
     }
 
@@ -37,20 +37,20 @@ module.exports = function(options) {
     https.get({
       host: "api.github.com",
       path: "/gists/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
-    }, response).on("error", callbackAll);
+    }, respond).on("error", callbackAll);
 
-    function response(response) {
-      var body = [];
+    function respond(response) {
+      var gist = [];
+      response.setEncoding("utf-8");
       response
-          .on("data", function(chunk) { body.push(chunk); })
+          .on("data", function(chunk) { gist.push(chunk); })
           .on("end", function() {
             var s = response.statusCode;
             if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
 
             // Parse the gist response.
-            var gist;
             try {
-              gist = JSON.parse(Buffer.concat(body).toString());
+              gist = JSON.parse(gist.join(""));
             } catch (e) {
               return callbackAll(e, null);
             }
@@ -64,21 +64,19 @@ module.exports = function(options) {
             for (var name in gist.files) {
               var file = gist.files[name],
                   sha = file.raw_url.split("/").filter(function(s) { return /^[0-9a-f]{40}$/.test(s); })[0];
-              files[name] = { language: file.language, type: file.type, filename: file.filename, size: file.size, sha: sha};
+              files[name] = {language: file.language, type: file.type, filename: file.filename, size: file.size, sha: sha};
               if (text(file.type)) q.defer(saveFile, id + "/" + sha + "/" + name, file.content);
             }
 
             // Strip the unneeded parts form the gist for memory efficiency;
-            gist = {
+            gistCache.set(inferredKey, gist = {
               history: [{version: commit}],
               files: files,
               updated_at: gist.updated_at,
               description: gist.description,
               user: gist.user ? {login: gist.user.login} : {login: "anonymous"},
               id: gist.id
-            };
-
-            q.defer(saveGist, inferredKey, gist);
+            });
 
             q.await(function(error) { callbackAll(error, error == null ? gist : null); });
           });
@@ -109,7 +107,7 @@ module.exports = function(options) {
           date = new Date(gist.updated_at);
 
       // If this file is already cached, return it.
-      var key = id + "/" + sha + "/" + name, file = findFile(key);
+      var key = id + "/" + sha + "/" + name, file = fileCache.get(key);
       if (file) return void zlib.gunzip(file, function(error, file) { callback(error, file, gistFile.type, date); });
 
       // If this file is already being requested, add to the callback queue.
@@ -121,16 +119,16 @@ module.exports = function(options) {
       https.get({
         host: "gist.github.com",
         path: "/raw/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
-      }, response).on("error", callbackAll);
+      }, respond).on("error", callbackAll);
 
-      function response(response) {
-        var body = [];
+      function respond(response) {
+        var file = [];
         response
-            .on("data", function(chunk) { body.push(chunk); })
+            .on("data", function(chunk) { file.push(chunk); })
             .on("end", function() {
               var s = response.statusCode;
               if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
-              saveFile(key, file = Buffer.concat(body), function(error) {
+              saveFile(key, file = Buffer.concat(file), function(error) {
                 callbackAll(error, file);
               });
             });
@@ -146,7 +144,7 @@ module.exports = function(options) {
   function getUser(login, page, callback) {
 
     // If this user is already cached, return it.
-    var key = login + "/" + page, user = findUser(key);
+    var key = login + "/" + page, user = userCache.get(key);
     if (user) return void process.nextTick(function() { callback(null, user); });
 
     // If this user is already being requested, add to the callback queue.
@@ -158,20 +156,20 @@ module.exports = function(options) {
     https.get({
       host: "api.github.com",
       path: "/users/" + login + "/gists?page=" + page + "&client_id=" + secret.id + "&client_secret=" + secret.secret
-    }, response).on("error", callbackAll);
+    }, respond).on("error", callbackAll);
 
-    function response(response) {
-      var body = [];
+    function respond(response) {
+      var gists = [];
+      response.setEncoding("utf-8");
       response
-          .on("data", function(chunk) { body.push(chunk); })
+          .on("data", function(chunk) { gists.push(chunk); })
           .on("end", function() {
             var s = response.statusCode;
             if ((s < 200 || s > 300) && s !== 304) return void callbackAll(s, null);
 
             // Parse the response.
-            var gists;
             try {
-              gists = JSON.parse(Buffer.concat(body).toString());
+              gists = JSON.parse(gists.join(""));
             } catch (e) {
               callbackAll(e, null);
             }
@@ -188,9 +186,8 @@ module.exports = function(options) {
                   };
                 });
 
-            saveUser(key, gists, function(error) {
-              callbackAll(error, gists);
-            });
+            userCache.set(key, gists);
+            callbackAll(null, gists);
           });
     }
 
@@ -200,33 +197,11 @@ module.exports = function(options) {
     }
   }
 
-  function findGist(key) {
-    return gistCache.get(key);
-  }
-
-  function saveGist(key, gist, callback) {
-    gistCache.set(key, gist);
-    process.nextTick(callback);
-  }
-
-  function findFile(key) {
-    return fileCache.get(key);
-  }
-
-  function saveFile(key, file, callback) {
-    zlib.gzip(file, function(error, file) {
-      if (!error) file.length < fileMaxSize ? fileCache.set(key, file) : fileCache.del(key);
+  function saveFile(key, buffer, callback) {
+    zlib.gzip(buffer, function(error, zbuffer) {
+      if (!error) zbuffer.length < fileMaxSize ? fileCache.set(key, zbuffer) : fileCache.del(key);
       callback(error);
     });
-  }
-
-  function findUser(key, maxAge) {
-    return userCache.get(key);
-  }
-
-  function saveUser(key, user, callback) {
-    userCache.set(key, user);
-    process.nextTick(callback);
   }
 
   return {
