@@ -125,9 +125,7 @@ function fetch() {
         .data(gists, function(d) { return d.id; })
       .enter().insert("a", "br")
         .attr("class", "gist")
-        .attr("href", function(d) { return "/" + d.id; });
-
-    gistEnter.filter(function(d) { return d.has_thumbnail; })
+        .attr("href", function(d) { return "/" + d.id; })
         .style("background-image", function(d) { return "url(/d/" + d.id + "/thumbnail.png)"; });
 
     gistEnter.append("span")

@@ -80,7 +80,7 @@ server.use(function(request, response, next) {
   if (!(r = /^\/d\/((?:[0-9]+|[0-9a-f]{20})(?:\/[0-9a-f]{40})?)$/.exec(u.pathname))) return next();
   var id = r[1];
   response.statusCode = 301;
-  response.setHeader("Location", "/d/" + id + "/'");
+  response.setHeader("Location", "/d/" + id + "/");
   response.end();
 });
 

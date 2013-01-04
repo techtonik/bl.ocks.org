@@ -191,13 +191,11 @@ module.exports = function(options) {
 
             // Strip the unneeded parts form the gist for memory efficiency.
             gists = gists
-                .filter(function(gist) { return "index.html" in gist.files; })
                 .map(function(gist) {
                   return {
                     id: gist.id,
                     description: gist.description,
-                    updated_at: gist.updated_at,
-                    has_thumbnail: "thumbnail.png" in gist.files
+                    updated_at: gist.updated_at
                   };
                 });
 

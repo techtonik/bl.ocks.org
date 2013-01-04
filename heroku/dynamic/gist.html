@@ -49,6 +49,8 @@ d3.json("/" + gist + ".json", function(error, info) {
 
   document.title = info.description || gist;
 
+  if (!("index.html" in info.files)) d3.selectAll(".gist-src,.gist-src-href").remove();
+
   d3.selectAll(".user-login").text(info.user.login);
   d3.selectAll(".user-href").attr("href", "/" + info.user.login);
   d3.selectAll(".gist-title").text(info.description);
