@@ -70,7 +70,7 @@ d3.json("/" + gist + ".json", function(error, info) {
       });
 
   var source = d3.select(".gist-sources").selectAll(".gist-source")
-      .data(files.filter(function(d) { return !/^readme\b/i.test(d.filename) && d.size < 100000 && text(d.type); }))
+      .data(files.filter(function(d) { return !/^readme\b/i.test(d.filename) && d.size < 50000 && text(d.type); }))
     .enter().append("div")
       .attr("class", "gist-source");
 
