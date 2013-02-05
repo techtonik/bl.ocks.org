@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<title>bl.ocks.org - {{username}}</title>
 <link rel="icon" href="/favicon.png">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="http://bl.ocks.org/{{username}}.rss">
 <style>
 
 @import url("/style.css?20120730");
 
 a.gist {
   background-position: 50% 0%;
-  border: solid 1px #ccc;
+  border: solid 1px #eee;
+  border-bottom: solid 1px #ccc;
   box-sizing: border-box;
   -o-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -70,7 +73,7 @@ a.gist:hover .description {
   about <a href="/">bl.ocks.org</a>
 </header>
 
-<h1><span class="user-login"></span>’s blocks</h1>
+<h1><span class="user-login">{{username}}</span>’s blocks</h1>
 
 <div class="gists">
   <br clear="both">
@@ -86,13 +89,9 @@ a.gist:hover .description {
 
 var formatDate = d3.time.format("%B %-d, %Y"),
     parseDate = d3.time.format.iso.parse,
-    user = location.pathname.substring(1),
     page = 0,
     fetching,
     id;
-
-document.title = "bl.ocks.org - " + user;
-d3.selectAll(".user-login").text(user);
 
 d3.select(window)
     .on("load", maybeFetch)
@@ -108,7 +107,7 @@ function maybeFetch() {
 
 function fetch() {
   fetching = true;
-  d3.json("/" + encodeURIComponent(user) + "/" + page + ".json" + (id ? "?" + id : ""), function(error, gists) {
+  d3.json("/" + encodeURIComponent("{{username}}") + "/" + page + ".json" + (id ? "?" + id : ""), function(error, gists) {
     fetching = false;
 
     if (!gists.length) {

@@ -1,8 +1,13 @@
-var url = require("url");
+var fs = require("fs"),
+    url = require("url");
 
 var connect = require("connect"),
     send = require("send"),
-    formatDate = require("dateformat");
+    formatDate = require("dateformat"),
+    mu = require("mu2");
+
+var userHtml = mu.compileText(fs.readFileSync("templates/user.html", "utf-8")),
+    userRss = mu.compileText(fs.readFileSync("templates/user.rss", "utf-8"));
 
 var api = require("./api-cache")({
   "user-max-age": 1000 * 60 * 5, // five minutes
@@ -123,7 +128,10 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([-\w]+)$/.exec(u.pathname))) return next();
-  send(request, "/user.html").root("dynamic").pipe(response);
+  var id = r[1];
+  mu.render(userHtml, {
+    username: id
+  }).pipe(response);
 });
 
 // User Gists API
@@ -156,6 +164,48 @@ server.use(function(request, response, next) {
     response.setHeader("Expires", formatDate(new Date(Date.now() + maxSeconds * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.setHeader("Last-Modified", formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
     response.end(content);
+  });
+});
+
+// User Gists RSS
+// e.g., /mbostock.rss
+server.use(function(request, response, next) {
+  var u = url.parse(request.url), r;
+  if (!(r = /^\/([-\w]+)\.rss$/.exec(u.pathname))) return next();
+  var id = r[1];
+  api.user(id, 1, function(error, user, userDate) {
+    if (error) {
+      response.statusCode = error === 404 ? 404 : 503;
+      response.setHeader("Content-Type", "text/plain");
+      response.end(error === 404 ? "File not found." : "Service unavailable.");
+      if (error !== 404) console.trace(error);
+      return;
+    }
+
+    var maxSeconds = 60 * 5;
+    response.setHeader("Cache-Control", "max-age=" + maxSeconds);
+    response.setHeader("Content-Type", "text/xml; charset=utf-8");
+    response.setHeader("Expires", formatDate(new Date(Date.now() + maxSeconds * 1000), "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
+    response.setHeader("Last-Modified", formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true));
+
+    // Return 304 not if-modified-since.
+    if (request.headers["if-modified-since"] && userDate <= new Date(request.headers["if-modified-since"])) {
+      response.statusCode = 304;
+      response.end();
+      return;
+    }
+
+    mu.render(userRss, {
+      username: id,
+      date: formatDate(userDate, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true),
+      gists: user.map(function(gist) {
+        return {
+          id: gist.id,
+          title: gist.description || gist.id,
+          date: formatDate(gist.updated_at, "ddd, dd mmm yyyy HH:MM:ss 'GMT'", true)
+        };
+      })
+    }).pipe(response);
   });
 });
 

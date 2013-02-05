@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{username}}’s blocks</title>
+    <link>http://bl.ocks.org/{{username}}</link>
+    <atom:link href="http://bl.ocks.org/{{username}}.rss" rel="self" type="application/rss+xml"/>
+    <description>{{username}}’s blocks</description>
+    <pubDate>{{date}}</pubDate>
+    <lastBuildDate>{{date}}</lastBuildDate>{{#gists}}
+    <item>
+      <title>{{title}}</title>
+      <link>http://bl.ocks.org/{{id}}</link>
+      <description><![CDATA[<a href="http://bl.ocks.org/{{id}}"><img src="http://bl.ocks.org/d/{{id}}/thumbnail.png" width="230" height="120"></a>]]></description>
+      <guid>{{id}}</guid>
+      <pubDate>{{date}}</pubDate>
+    </item>{{/gists}}
+  </channel>
+</rss>
