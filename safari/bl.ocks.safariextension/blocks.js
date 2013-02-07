@@ -20,7 +20,7 @@ function redraw() {
     ul.insertBefore(li, ul.firstChild);
   }
 
-  var parts = location.pathname.substring(1).split("/"), id = parts[0], sha = parts[1];
+  var parts = location.pathname.substring(1).split("/"), id = parts[1], sha = parts[2];
   if (!/^([-\w]+|[0-9]+|[0-9a-f]{40})$/.test(id)) return;
   if (!/^[0-9a-f]{40}$/.test(sha)) sha = null;
   a.href = "http://bl.ocks.org/" + id + (sha ? "/" + sha : "");
