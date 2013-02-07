@@ -113,14 +113,14 @@ module.exports = function(options) {
       // If this file is already cached, return it.
       fileCache.get(id + "/" + sha + "/" + name, function(error, file) {
         if (file) return void callback(null, file, type, date);
-        fetchFile(id, sha, name, function(error, file) {
+        fetchFile(gist.user.login, id, sha, name, function(error, file) {
           callback(error, file, type, date);
         });
       });
     });
   }
 
-  function fetchFile(id, sha, name, callback) {
+  function fetchFile(username, id, sha, name, callback) {
     var key = id + "/" + sha + "/" + name;
 
     // If this file is already being requested, add to the callback queue.
@@ -131,7 +131,7 @@ module.exports = function(options) {
     // Otherwise, fetch the file.
     https.get({
       host: "gist.github.com",
-      path: "/raw/" + key + "?client_id=" + secret.id + "&client_secret=" + secret.secret
+      path: "/" + username + "/" + id + "/raw/" + sha + "/" + name + "?client_id=" + secret.id + "&client_secret=" + secret.secret
     }, function(response) {
       var file = [];
       response
