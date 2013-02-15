@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>{{#gist.description}}{{gist.description}}{{/gist.description}}{{^gist.description}}{{gist.id}}{{/gist.description}}</title>
+<link rel="icon" href="/favicon.png">
+<style>
+
+@import url("/style.css?20120730");
+
+</style>
+
+<header>
+  <a href="/{{gist.user.login}}">{{gist.user.login}}</a>’s block <a href="https://gist.github.com/{{gist.user.login}}/{{gist.id}}">#{{gist.id}}</a>
+</header>
+
+<h1>{{#gist.description}}{{gist.description}}{{/gist.description}}{{^gist.description}}{{gist.id}}{{/gist.description}}</h1>
+<p><aside style="margin-top:-43px;">{{date}}</aside>
+
+{{#index}}
+<iframe src="/{{gist.user.login}}/raw/{{gist.id}}/{{gist.history.0.version}}/" marginwidth="0" marginheight="0" scrolling="no"></iframe>
+<p><aside><a style="position:relative;top:6px;" href="/{{gist.user.login}}/raw/{{gist.id}}/" target="_blank">Open in a new window.</a></aside>
+{{/index}}
+
+<div class="gist-readme"></div>
+
+<div class="gist-sources"></div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="/highlight.min.js?20120730"></script>
+<script>
+
+var gist = {{{json}}};
+
+var files = d3.values(gist.files)
+    .sort(function(a, b) { return (b.filename === "index.html") - (a.filename === "index.html") || a.filename.localeCompare(b.filename); });
+
+var readme = d3.selectAll(".gist-readme")
+    .data(files.filter(function(d) { return /^readme\b/i.test(d.filename) && d.language === "Markdown"; }))
+    .each(function(d) {
+      var readme = d3.select(this);
+      d3.text("/{{gist.user.login}}/raw/{{gist.id}}/{{gist.history.0.version}}/" + d.filename, function(error, content) {
+        readme.html(new Showdown.converter().makeHtml(content));
+        readme.selectAll("code").each(function() { hljs.highlightBlock(this); });
+      });
+    });
+
+var source = d3.select(".gist-sources").selectAll(".gist-source")
+    .data(files.filter(function(d) { return !/^readme\b/i.test(d.filename) && d.size < 50000 && text(d.type); }))
+  .enter().append("div")
+    .attr("class", "gist-source");
+
+source.append("h2")
+    .text(function(d) { return d.filename; })
+  .append("a")
+    .attr("name", function(d) { return d.filename; })
+    .attr("href", function(d) { return "#" + d.filename; })
+    .text("#");
+
+source.append("pre").append("code")
+    .attr("class", function(d) { return d.language && (d.language === "JSON" ? "javascript" : d.language.toLowerCase()); })
+    .each(function(d) {
+      var code = d3.select(this);
+      d3.text("/{{gist.user.login}}/raw/{{gist.id}}/{{gist.history.0.version}}/" + (d.filename === "index.html" ? "" : d.filename), function(error, content) {
+        code.text(content);
+        hljs.highlightBlock(code.node());
+      });
+    });
+
+function text(type) {
+  return /(^text\/)|(^application\/(javascript|json)$)|(^image\/svg$)|(\+xml$)/.test(type);
+}
+
+</script>
+
+<footer>
+  <aside>{{date}}</aside>
+  <a href="/{{gist.user.login}}">{{gist.user.login}}</a>’s block <a href="https://gist.github.com/{{gist.user.login}}/{{gist.id}}">#{{gist.id}}</a>
+</footer>

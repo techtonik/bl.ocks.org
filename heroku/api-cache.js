@@ -112,9 +112,9 @@ module.exports = function(options) {
 
       // If this file is already cached, return it.
       fileCache.get(id + "/" + sha + "/" + name, function(error, file) {
-        if (file) return void callback(null, file, type, date);
+        if (file) return void callback(null, gist, file, type, date);
         fetchFile(gist.user.login, id, sha, name, function(error, file) {
-          callback(error, file, type, date);
+          callback(error, gist, file, type, date);
         });
       });
     });

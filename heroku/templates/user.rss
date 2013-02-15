@@ -10,7 +10,7 @@
     <item>
       <title>{{title}}</title>
       <link>http://bl.ocks.org/{{id}}</link>
-      <description><![CDATA[<a href="http://bl.ocks.org/{{id}}"><img src="http://bl.ocks.org/d/{{id}}/thumbnail.png" width="230" height="120"></a>]]></description>
+      <description><![CDATA[<a href="http://bl.ocks.org/{{id}}"><img src="http://bl.ocks.org/raw/{{id}}/thumbnail.png" width="230" height="120"></a>]]></description>
       <guid>{{id}}</guid>
       <pubDate>{{date}}</pubDate>
     </item>{{/gists}}

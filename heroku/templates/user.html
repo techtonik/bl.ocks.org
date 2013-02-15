@@ -93,8 +93,9 @@ var formatDate = d3.time.format("%B %-d, %Y"),
     fetching,
     id;
 
+display(null, {{{json}}})
+
 d3.select(window)
-    .on("load", maybeFetch)
     .on("scroll", maybeFetch)
     .on("resize", maybeFetch);
 
@@ -107,40 +108,42 @@ function maybeFetch() {
 
 function fetch() {
   fetching = true;
-  d3.json("/" + encodeURIComponent("{{username}}") + "/" + page + ".json" + (id ? "?" + id : ""), function(error, gists) {
-    fetching = false;
+  d3.json("/" + encodeURIComponent("{{username}}") + "/" + page + ".json" + (id ? "?" + id : ""), display);
+}
 
-    if (!gists.length) {
-      page = NaN;
-      d3.select(".loading").remove();
-      return;
-    }
+function display(error, gists) {
+  fetching = false;
 
-    gists.forEach(function(d) {
-      d.updated_at = parseDate(d.updated_at);
-    });
+  if (!gists.length) {
+    page = NaN;
+    d3.select(".loading").remove();
+    return;
+  }
 
-    var gistEnter = d3.select(".gists").selectAll(".gist")
-        .data(gists, function(d) { return d.id; })
-      .enter().insert("a", "br")
-        .attr("class", "gist")
-        .attr("href", function(d) { return "/" + d.id; })
-        .style("background-image", function(d) { return "url(/d/" + d.id + "/thumbnail.png)"; });
-
-    gistEnter.append("span")
-        .attr("class", "description")
-        .text(function(d) { return d.description || d.id; });
-
-    gistEnter.append("span")
-        .attr("class", "date")
-        .text(function(d) { return formatDate(d.updated_at); });
-
-    d3.select(".gists").selectAll(".gist")
-        .sort(function(a, b) { return b.id - a.id; });
-
-    id = gists[gists.length - 1].id;
-    setTimeout(maybeFetch, 50);
+  gists.forEach(function(d) {
+    d.updated_at = parseDate(d.updated_at);
   });
+
+  var gistEnter = d3.select(".gists").selectAll(".gist")
+      .data(gists, function(d) { return d.id; })
+    .enter().insert("a", "br")
+      .attr("class", "gist")
+      .attr("href", function(d) { return "/{{username}}/" + d.id; })
+      .style("background-image", function(d) { return "url(/{{username}}/raw/" + d.id + "/thumbnail.png)"; });
+
+  gistEnter.append("span")
+      .attr("class", "description")
+      .text(function(d) { return d.description || d.id; });
+
+  gistEnter.append("span")
+      .attr("class", "date")
+      .text(function(d) { return formatDate(d.updated_at); });
+
+  d3.select(".gists").selectAll(".gist")
+      .sort(function(a, b) { return b.id - a.id; });
+
+  id = gists[gists.length - 1].id;
+  setTimeout(maybeFetch, 50);
 }
 
 </script>
