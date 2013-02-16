@@ -20,8 +20,9 @@ function redraw() {
     ul.insertBefore(li, ul.firstChild);
   }
 
-  var parts = location.pathname.substring(1).split("/"), id = parts[1], sha = parts[2];
-  if (!/^([-\w]+|[0-9]+|[0-9a-f]{40})$/.test(id)) return;
+  var parts = location.pathname.substring(1).split("/"), user = parts[0], id = parts[1], sha = parts[2];
+  if (!user || !/^[a-z0-9][a-z0-9]*$/.test(user)) return;
+  if (!/^([0-9]+|[0-9a-f]{40})$/.test(id)) id = null;
   if (!/^[0-9a-f]{40}$/.test(sha)) sha = null;
-  a.href = "http://bl.ocks.org/" + id + (sha ? "/" + sha : "");
+  a.href = "http://bl.ocks.org/" + user + (id ? "/" + id + (sha ? "/" + sha : "") : "");
 }
