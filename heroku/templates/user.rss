@@ -9,8 +9,8 @@
     <lastBuildDate>{{date}}</lastBuildDate>{{#gists}}
     <item>
       <title>{{title}}</title>
-      <link>http://bl.ocks.org/{{id}}</link>
-      <description><![CDATA[<a href="http://bl.ocks.org/{{id}}"><img src="http://bl.ocks.org/raw/{{id}}/thumbnail.png" width="230" height="120"></a>]]></description>
+      <link>http://bl.ocks.org/{{username}}/{{id}}</link>
+      <description><![CDATA[<a href="http://bl.ocks.org/{{username}}/{{id}}"><img src="http://bl.ocks.org/{{username}}/raw/{{id}}/thumbnail.png" width="230" height="120"></a>]]></description>
       <guid>{{id}}</guid>
       <pubDate>{{date}}</pubDate>
     </item>{{/gists}}
