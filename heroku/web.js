@@ -58,7 +58,7 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/d\/([0-9]+|[0-9a-f]{20})(?:\/([0-9a-f]{40}))?(\/.*)?$/.exec(u.pathname))) return next();
-  var id = r[1], sha = r[2], file = decodeURIComponent(r[3]) || "/", search = u.search || "";
+  var id = r[1], sha = r[2], file = r[3] && decodeURIComponent(r[3]) || "/", search = u.search || "";
 
   api.gist(id, sha, function(error, gist) {
     if (error) {
