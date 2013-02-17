@@ -153,6 +153,7 @@ module.exports = function(options) {
   }
 
   function getUser(login, page, callback) {
+    login = login.toLowerCase();
 
     // If this user is already cached, return it.
     userCache.get(login + "/" + page, function(error, gists) {

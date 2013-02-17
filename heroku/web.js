@@ -122,7 +122,7 @@ server.use(function(request, response, next) {
   if (!(r = /^\/([a-zA-Z0-9][a-zA-Z0-9-]*)$/.exec(u.pathname))) return next();
   var login = r[1];
 
-  api.user(login, 1, function(error, userGists, userDate) {
+  api.user(login, 1, function(error, userGists) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -146,7 +146,7 @@ server.use(function(request, response, next) {
   var login = r[1],
       page = +r[2];
 
-  api.user(login, page, function(error, userGists, userDate) {
+  api.user(login, page, function(error, userGists) {
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -156,7 +156,8 @@ server.use(function(request, response, next) {
     }
 
     var content = null,
-        maxSeconds = page === 1 ? 60 * 5 : 60 * 60 * 24;
+        maxSeconds = page === 1 ? 60 * 5 : 60 * 60 * 24,
+        userDate = userGists.reduce(function(p, v) { v = new Date(v.updated_at); return p < v ? v : p; }, new Date(0));
 
     // Return 304 not if-modified-since.
     response.statusCode = request.headers["if-modified-since"]
@@ -221,10 +222,12 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([a-zA-Z0-9][a-zA-Z0-9-]*)\/([0-9]+|[0-9a-f]{20})(?:\/([0-9a-f]{40}))?$/.exec(u.pathname))) return next();
-  var login = r[1], id = r[2], sha = r[3];
+  var login = r[1],
+      id = r[2],
+      sha = r[3];
 
   api.gist(id, sha, function(error, gist) {
-    if (!error && gist.user.login !== login) error = 404;
+    if (!error && gist.user.login.toLowerCase() !== login.toLowerCase()) error = 404;
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
@@ -264,9 +267,13 @@ server.use(function(request, response, next) {
 server.use(function(request, response, next) {
   var u = url.parse(request.url), r;
   if (!(r = /^\/([a-zA-Z0-9][a-zA-Z0-9-]*)\/raw\/([0-9]+|[0-9a-f]{20})(?:\/([0-9a-f]{40}))?\/(.*)$/.exec(u.pathname))) return next();
-  var login = r[1], id = r[2], sha = r[3], file = decodeURIComponent(r[4]) || "index.html";
+  var login = r[1],
+      id = r[2],
+      sha = r[3],
+      file = decodeURIComponent(r[4]) || "index.html";
+
   api.file(id, sha, file, function(error, gist, content, contentType, contentDate) {
-    if (!error && gist.user.login !== login) error = 404;
+    if (!error && gist.user.login.toLowerCase() !== login.toLowerCase()) error = 404;
     if (error) {
       response.statusCode = error === 404 ? 404 : 503;
       response.setHeader("Content-Type", "text/plain");
