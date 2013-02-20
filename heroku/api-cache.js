@@ -57,6 +57,11 @@ module.exports = function(options) {
               return void callbackAll(e, null);
             }
 
+            // make sure there is history
+            if (!commit && !gist.history[0]) {
+              return void callbackAll("Empty gist", null);
+            }
+
             // Save the current master version.
             if (!commit) commit = commitById[id] = gist.history[0].version;
 
