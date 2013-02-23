@@ -270,7 +270,16 @@ server.use(function(request, response, next) {
   var login = r[1],
       id = r[2],
       sha = r[3],
-      file = decodeURIComponent(r[4]) || "index.html";
+      file = decodeURIComponent(r[4]) || "index.html",
+      referer = request.headers["referer"],
+      host = request.headers["host"];
+
+  if (referer != null && file != "index.html" && referer.indexOf("http://" + host) != 0) {
+    response.statusCode = 403;
+    response.setHeader("Content-Type", "text/plain");
+    response.end("Forbidden.");
+    return;
+  }
 
   api.file(id, sha, file, function(error, gist, content, contentType, contentDate) {
     if (!error && gist.user.login.toLowerCase() !== login.toLowerCase()) error = 404;
