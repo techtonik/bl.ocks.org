@@ -77,7 +77,7 @@ module.exports = function(options) {
             q.defer(gistCache.set, id + "/" + commit, gist = {
               history: [{version: commit}],
               files: files,
-              updated_at: gist.updated_at,
+              updated_at: new Date(gist.updated_at),
               description: gist.description,
               user: gist.user ? {login: gist.user.login} : {login: "anonymous"},
               id: gist.id
@@ -111,7 +111,7 @@ module.exports = function(options) {
       var gistFile = gist.files[name],
           sha = gistFile.sha,
           type = gistFile.type,
-          date = new Date(gist.updated_at);
+          date = gist.updated_at;
 
       // If this file is already cached, return it.
       fileCache.get(id + "/" + sha + "/" + name, function(error, file) {
@@ -199,7 +199,7 @@ module.exports = function(options) {
                   return {
                     id: gist.id,
                     description: gist.description,
-                    updated_at: gist.updated_at
+                    updated_at: new Date(gist.updated_at)
                   };
                 });
 

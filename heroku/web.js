@@ -157,7 +157,7 @@ server.use(function(request, response, next) {
 
     var content = null,
         maxSeconds = page === 1 ? 60 * 5 : 60 * 60 * 24,
-        userDate = userGists.reduce(function(p, v) { v = new Date(v.updated_at); return p < v ? v : p; }, new Date(0));
+        userDate = userGists.reduce(function(p, v) { return p < v ? v : p; }, new Date(0));
 
     // Return 304 not if-modified-since.
     response.statusCode = request.headers["if-modified-since"]
@@ -236,7 +236,7 @@ server.use(function(request, response, next) {
       return;
     }
 
-    var gistDate = new Date(gist.updated_at);
+    var gistDate = gist.updated_at;
 
     response.setHeader("Cache-Control", "max-age=86400");
     response.setHeader("Content-Type", "text/html; charset=utf-8");
